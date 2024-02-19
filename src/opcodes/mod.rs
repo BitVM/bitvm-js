@@ -8,13 +8,15 @@ pub mod pseudo;
 
 pub enum Opcode {
     Native(&'static str),
+    Value(i32),
     Composed(&'static [Opcode]),
 }
 
 impl fmt::Debug for Opcode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Opcode::Native(x) => write!(f, "{}", x),
+            Opcode::Native(x) => write!(f, "{:?}", x),
+            Opcode::Value(x) => write!(f, "{:?}", x),
             Opcode::Composed(x) => {
                 let mut first = true;
                 for op in x.iter() {
@@ -26,7 +28,7 @@ impl fmt::Debug for Opcode {
                     write!(f, "{:?}", op)?;
                 }
                 Ok(())
-            }
+            },
         }
     }
 }
