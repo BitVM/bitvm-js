@@ -1,16 +1,18 @@
 #![allow(dead_code)]
+extern crate bitvm_proc_macro;
+
 
 use std::fmt;
 
-
 pub mod pseudo;
-
+pub mod u32_zip;
 
 pub enum Opcode {
     Native(&'static str),
     Value(i32),
     Composed(&'static [Opcode]),
 }
+
 
 impl fmt::Debug for Opcode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -28,10 +30,19 @@ impl fmt::Debug for Opcode {
                     write!(f, "{:?}", op)?;
                 }
                 Ok(())
-            },
+            }
         }
     }
 }
+
+
+#[macro_export]
+macro_rules! compose {
+    ( [ $($x:expr),+ ] ) => (
+        Opcode::Composed(&[ $ ( bitvm_proc_macro::make_opcode!($x) ) , * ] )
+    )
+}
+
 
 pub const OP_0: Opcode = Opcode::Native("OP_0");
 pub const OP_PUSHDATA1: Opcode = Opcode::Native("OP_PUSHDATA1");
