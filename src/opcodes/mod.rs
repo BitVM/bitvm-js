@@ -7,14 +7,36 @@ use std::fmt;
 pub mod pseudo;
 pub mod u32_zip;
 
-pub enum Opcode {
-    Native(&'static str),
+pub enum Opcode<'a> {
+    Native(&'a str),
     Value(i32),
-    Composed(&'static [Opcode]),
+    Composed(&'a [Opcode<'a>]),
+}
+
+pub trait ToOpcode<'a> {
+    fn to_opcode(self) -> Opcode<'a>;
+}
+
+impl<'a> ToOpcode<'a> for i32 {
+    fn to_opcode(self) -> Opcode<'a> {
+        Opcode::Value(self)
+    }
+}
+
+impl<'a> ToOpcode<'a> for u32 {
+    fn to_opcode(self) -> Opcode<'a> {
+        Opcode::Value(self as i32)
+    }
+}
+
+impl<'a> ToOpcode<'a> for Opcode<'a> {
+    fn to_opcode(self) -> Opcode<'a> {
+        self
+    }
 }
 
 
-impl fmt::Debug for Opcode {
+impl<'a> fmt::Debug for Opcode<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Opcode::Native(x) => write!(f, "{:?}", x),
@@ -37,9 +59,19 @@ impl fmt::Debug for Opcode {
 
 
 #[macro_export]
-macro_rules! compose {
+macro_rules! const_compose {
     ( [ $($x:expr),+ ] ) => (
         Opcode::Composed(&[ $ ( bitvm_proc_macro::make_opcode!($x) ) , * ] )
+    )
+}
+
+
+#[macro_export]
+macro_rules! compose {
+    ( [ $($x:expr),+ ] ) => (
+        Opcode::Composed(&[ 
+            $ ( ($x).to_opcode()) , * 
+        ])
     )
 }
 
