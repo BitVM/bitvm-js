@@ -1,21 +1,11 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
+use crate::opcodes::unroll;
+
 use super::pushable::{self, Pushable};
 use bitcoin::ScriptBuf;
 use bitcoin_script::bitcoin_script;
 
-pub fn unroll<F, T>(count: u32, closure: F) -> Vec<T>
-where
-    F: Fn(u32) -> T,
-    T: Pushable,
-{
-    let mut result = vec![];
-
-    for i in 0..=count {
-        result.push(closure(i))
-    }
-    result
-}
 
 /// OP_4PICK
 /// The 4 items n back in the stack are copied to the top.
