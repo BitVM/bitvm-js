@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 use crate::opcodes::unroll;
 
-use super::pushable::{self, Pushable};
+use super::pushable;
 use bitcoin::ScriptBuf;
 use bitcoin_script::bitcoin_script;
 
