@@ -3,6 +3,7 @@
 use super::pushable;
 use bitcoin::{opcodes::all::{OP_GREATERTHAN, OP_LESSTHAN}, Opcode, ScriptBuf};
 use bitcoin_script::bitcoin_script;
+use crate::opcodes::u32_zip::u32_copy_zip;
 
 pub fn u8_and(i: u32) -> ScriptBuf {
     bitcoin_script! {
@@ -68,7 +69,7 @@ pub fn u8_and(i: u32) -> ScriptBuf {
 }
 
 // Expects the u32_xor_table to be on the stack
-pub fn u32_and = (a: u32, b: u32, stack_size: u32) -> ScriptBuf {
+pub fn u32_and (a: u32, b: u32, stack_size: u32) -> ScriptBuf {
     assert_ne!(a, b);
     bitcoin_script! {
         <u32_copy_zip(a, b)>
