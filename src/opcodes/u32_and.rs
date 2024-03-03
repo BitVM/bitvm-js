@@ -3,7 +3,7 @@
 use crate::opcodes::u32_zip::u32_copy_zip;
 
 use super::pushable;
-use bitcoin::{opcodes::all::{OP_GREATERTHAN, OP_LESSTHAN}, Opcode, ScriptBuf};
+use bitcoin::ScriptBuf;
 use bitcoin_script::bitcoin_script;
 
 pub fn u8_and(i: u32) -> ScriptBuf {

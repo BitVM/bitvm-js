@@ -13,23 +13,23 @@ pub fn u32_rrot16() -> ScriptBuf {
 
 pub fn u32_rrot8() -> ScriptBuf {
     bitcoin_script! {
-    3 OP_ROLL
-    3 OP_ROLL
-    3 OP_ROLL
+    <3> OP_ROLL
+    <3> OP_ROLL
+    <3> OP_ROLL
     }
 }
 
 pub fn u8_rrot12() -> ScriptBuf {
     bitcoin_script! {
-    0
+    <0>
     OP_TOALTSTACK
 
     <unroll(4, |i| bitcoin_script!{
         OP_DUP
-        127
+        <127>
         OP_GREATERTHAN
         OP_IF
-            128
+            <128>
             OP_SUB
             OP_FROMALTSTACK
             ~8 >> i~
@@ -51,29 +51,29 @@ pub fn u8_rrot12() -> ScriptBuf {
 pub fn u32_rrot12() -> ScriptBuf {
     bitcoin_script! {
               u8_rrot12
-    2 OP_ROLL u8_rrot12
-    4 OP_ROLL u8_rrot12
-    6 OP_ROLL u8_rrot12
+    <2> OP_ROLL u8_rrot12
+    <4> OP_ROLL u8_rrot12
+    <6> OP_ROLL u8_rrot12
 
     //
     // Glue it all together
     //
 
-    5 OP_ROLL
-    6 OP_ROLL
+    <5> OP_ROLL
+    <6> OP_ROLL
       OP_ADD
       OP_SWAP
 
-    6 OP_ROLL
+    <6> OP_ROLL
       OP_ADD
 
       OP_ROT
-    3 OP_ROLL
+    <3> OP_ROLL
       OP_ADD
 
-    4 OP_ROLL
+    <4> OP_ROLL
 
-    4 OP_ROLL
+    <4> OP_ROLL
       OP_ADD
     }
 }
@@ -82,14 +82,14 @@ pub fn u8_rrot7(i: u32) -> ScriptBuf {
     bitcoin_script! {
     <i> OP_ROLL
        OP_DUP
-    127
+    <127>
     OP_GREATERTHAN
     OP_IF
-        128
+        <128>
         OP_SUB
-        1
+        <1>
     OP_ELSE
-        0
+        <0>
     OP_ENDIF
     }
 }
@@ -134,7 +134,7 @@ pub fn u32_rrot7() -> ScriptBuf {
     OP_SWAP
 
     // Close the circle
-    4 OP_ROLL
+    <4> OP_ROLL
       OP_DUP
       OP_ADD
       OP_ADD

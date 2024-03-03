@@ -20,7 +20,7 @@ pub fn u32_zip(mut a: u32, mut b: u32) -> ScriptBuf {
 }
 
 pub fn u32_copy_zip(a: u32, b: u32) -> ScriptBuf {
-	if a < b {
+    if a < b {
         _u32_copy_zip(a, b)
     } else {
         _u32_zip_copy(b, a)

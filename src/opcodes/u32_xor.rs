@@ -330,4 +330,3 @@ pub fn u32_drop_xor_table() -> ScriptBuf {
         <unroll(128, |_| OP_2DROP)>
     }
 }
-

@@ -9,16 +9,16 @@ use bitcoin_script::bitcoin_script;
 // ((((((A_0 > B_0) && A_1 == B_1) || A_1 > B_1) && A_2 == B_2) || A_2 > B_2) && A_3 == B_3) || A_3 > B_3
 fn u32_cmp(opcode : Opcode) -> ScriptBuf {
     bitcoin_script! {
-	    4
+	    <4>
 	    OP_ROLL
 	    OP_SWAP
 	    <opcode>
 	    OP_SWAP
-	    4
+	    <4>
 	    OP_ROLL
 	    OP_2DUP
 	    OP_EQUAL
-	    3
+	    <3>
 	    OP_ROLL
 	    OP_BOOLAND
 	    OP_SWAP
@@ -26,11 +26,11 @@ fn u32_cmp(opcode : Opcode) -> ScriptBuf {
 	    <opcode>
 	    OP_BOOLOR
 	    OP_SWAP
-	    3
+	    <3>
 	    OP_ROLL
 	    OP_2DUP
 	    OP_EQUAL
-	    3
+	    <3>
 	    OP_ROLL
 	    OP_BOOLAND
 	    OP_SWAP
@@ -41,7 +41,7 @@ fn u32_cmp(opcode : Opcode) -> ScriptBuf {
 	    OP_ROT
 	    OP_2DUP
 	    OP_EQUAL
-	    3
+	    <3>
 	    OP_ROLL
 	    OP_BOOLAND
 	    OP_SWAP
@@ -63,21 +63,21 @@ pub fn u32_greaterthan() -> ScriptBuf {
 fn u32_cmpeq(opcode: Opcode) -> ScriptBuf {
     bitcoin_script! {
 	OP_4DUP
-	8
+	<8>
 	OP_PICK
 	OP_EQUAL
 	OP_SWAP
-	9
+	<9>
 	OP_PICK
 	OP_EQUAL
 	OP_BOOLAND
 	OP_SWAP	
-	9
+	<9>
 	OP_PICK
 	OP_EQUAL
 	OP_BOOLAND
 	OP_SWAP	
-	9
+	<9>
 	OP_PICK
 	OP_EQUAL
 	OP_BOOLAND

@@ -43,7 +43,7 @@ pub fn u8_or(i: u32) -> ScriptBuf {
 
     // A_andxor_B_even = f_A + f_B 
     OP_SWAP
-    3
+    <3>
     OP_ROLL
     OP_ADD
 
@@ -52,10 +52,10 @@ pub fn u8_or(i: u32) -> ScriptBuf {
     OP_DUP
     OP_ADD
     OP_DUP         // The left shift may overflow 1 bit
-    255
+    <255>
     OP_GREATERTHAN
     OP_IF
-        256    
+        <256>    
         OP_SUB
     OP_ENDIF
     <i + 1>
@@ -77,10 +77,10 @@ pub fn u8_or(i: u32) -> ScriptBuf {
     OP_DUP
     OP_ADD
     OP_DUP
-    255
+    <255>
     OP_GREATERTHAN
     OP_IF
-        256    
+        <256>    
         OP_SUB
     OP_ENDIF
     <i>
