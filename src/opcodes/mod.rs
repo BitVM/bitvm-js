@@ -12,6 +12,7 @@ pub mod u32_and;
 pub mod u32_cmp;
 pub mod u32_add;
 pub mod u256_std;
+pub mod blake3;
 
 define_pushable!();
 

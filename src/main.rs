@@ -4,9 +4,7 @@ use opcodes::pseudo::OP_4PICK;
 use opcodes::pushable;
 
 use crate::opcodes::{
-    pseudo::{op_2k_mul, OP_4ROLL},
-    u32_xor::{u32_drop_xor_table, u32_push_xor_table, u32_xor},
-    unroll,
+    blake3::blake3, pseudo::{op_2k_mul, OP_4ROLL}, u32_xor::{u32_drop_xor_table, u32_push_xor_table, u32_xor}, unroll
 };
 
 
@@ -37,5 +35,9 @@ fn main() {
     let my_script = bitcoin_script! {
         <String::from("HALLOTHISISVERYLONGANDVERYMUCHINTHEELIMITIASJDAKJSDAKJSHDHALLOTHISISVERYLONGANDVERYMUCHINTHEELIMITIASJDAKJSDAKJSHDHALLOTHISISVERYLONGANDVERYMUCHINTHEELIMITIASJDAKJSDAKJSHDHALLOTHISISVERYLONGANDVERYMUCHINTHEELIMITIASJDAKJSDAKJSHD").into_bytes()>
     };
-    println!("{:?}", my_script);
+
+    let my_script = bitcoin_script! {
+        blake3
+    };
+    println!("{:?}", my_script.to_asm_string())
 }
