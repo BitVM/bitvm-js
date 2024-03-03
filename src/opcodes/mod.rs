@@ -23,7 +23,7 @@ where
 {
     let mut result = vec![];
 
-    for i in 0..=count {
+    for i in 0..count {
         result.push(closure(i))
     }
     result
