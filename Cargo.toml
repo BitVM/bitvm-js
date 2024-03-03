@@ -7,6 +7,10 @@ edition = "2021"
 
 [dependencies]
 bitcoin-script = { path = "../rust-bitcoin-script" }
-bitcoin = "0.31.1"
+bitcoin = { git = "https://github.com/stevenroose/rust-bitcoin", rev = "639d552ef0080a68b1ea883298aa30c450d9ff0d" }
+# bitcoin = "0.31.1"
 strum = "0.26"
 strum_macros = "0.26"
+
+[dev-dependencies]
+bitcoin-scriptexec = { path="../rust-bitcoin-scriptexec"}
