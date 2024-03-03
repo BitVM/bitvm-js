@@ -1,4 +1,6 @@
 mod opcodes;
+mod actor;
+mod model;
 use bitcoin_script::bitcoin_script;
 use opcodes::pseudo::OP_4PICK;
 use opcodes::pushable;
