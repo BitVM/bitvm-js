@@ -104,45 +104,45 @@ impl BlakeEnv for HashMap<String, u32> {
 
     fn G(&mut self, _ap: u32, a: &str, b: &str, c: &str, d: &str, m0: &str, m1: &str) -> ScriptBuf {
         let script = bitcoin_script! {
-        // z = a+b+m0
-        <u32_add(*self.get(b).unwrap(), self.ptr_extract(a))>
-        <u32_add(*self.get(m0).unwrap() + 1, 0)>
-        // Stack:  m1 m0 d c b  |  z
+            // z = a+b+m0
+            <u32_add(*self.get(b).unwrap(), self.ptr_extract(a))>
+            <u32_add(*self.get(m0).unwrap() + 1, 0)>
+            // Stack:  m1 m0 d c b  |  z
 
-        // y = (d^z) >>> 16
-        <u32_xor(0, self.ptr_extract(d) + 1, _ap + 1)>
-        u32_rrot16
-        // Stack:  m1 m0 c b  |  z y
-
-
-        // x = y+c
-        <u32_add(0, self.ptr_extract(c) + 2)>
-        // Stack:  m1 m0 b  |  z y x
-
-        // w = (b^x) >>> 12
-        <u32_xor(0, self.ptr_extract(b) + 3, _ap + 1)>
-        u32_rrot12
-        // Stack:  m1 m0 |  z y x w
+            // y = (d^z) >>> 16
+            <u32_xor(0, self.ptr_extract(d) + 1, _ap + 1)>
+            u32_rrot16
+            // Stack:  m1 m0 c b  |  z y
 
 
-        // v = z+w+m1
-        <u32_add(0, 3)>
-        <u32_add(*self.get(m1).unwrap() + 4, 0)>
-        // Stack: m1 m0 |  y x w v
+            // x = y+c
+            <u32_add(0, self.ptr_extract(c) + 2)>
+            // Stack:  m1 m0 b  |  z y x
 
-        // u = (y^v) >>> 8
-        <u32_xor(0, 3, _ap + 1)>
-        u32_rrot8
-        // Stack: m1 m0 |  x w v u
+            // w = (b^x) >>> 12
+            <u32_xor(0, self.ptr_extract(b) + 3, _ap + 1)>
+            u32_rrot12
+            // Stack:  m1 m0 |  z y x w
 
-        // t = x+u
-        <u32_add(0, 3)>
-        // Stack: m1 m0 |  w v u t
 
-        // s = (w^t) >>> 7
-        <u32_xor(0, 3, _ap + 1)>
-        u32_rrot7
-        // Stack: m1 m0 |  v u t s
+            // v = z+w+m1
+            <u32_add(0, 3)>
+            <u32_add(*self.get(m1).unwrap() + 4, 0)>
+            // Stack: m1 m0 |  y x w v
+
+            // u = (y^v) >>> 8
+            <u32_xor(0, 3, _ap + 1)>
+            u32_rrot8
+            // Stack: m1 m0 |  x w v u
+
+            // t = x+u
+            <u32_add(0, 3)>
+            // Stack: m1 m0 |  w v u t
+
+            // s = (w^t) >>> 7
+            <u32_xor(0, 3, _ap + 1)>
+            u32_rrot7
+            // Stack: m1 m0 |  v u t s
         };
 
         self.ptr_insert(a);
@@ -154,15 +154,15 @@ impl BlakeEnv for HashMap<String, u32> {
 
     fn round(&mut self, _ap: u32) -> ScriptBuf {
         bitcoin_script! {
-        <self.G(_ap, &S(0), &S(4), &S(8),  &S(12), &M(0),  &M(1))>
-        <self.G(_ap, &S(1), &S(5), &S(9),  &S(13), &M(2),  &M(3))>
-        <self.G(_ap, &S(2), &S(6), &S(10), &S(14), &M(4),  &M(5))>
-        <self.G(_ap, &S(3), &S(7), &S(11), &S(15), &M(6),  &M(7))>
+            <self.G(_ap, &S(0), &S(4), &S(8),  &S(12), &M(0),  &M(1))>
+            <self.G(_ap, &S(1), &S(5), &S(9),  &S(13), &M(2),  &M(3))>
+            <self.G(_ap, &S(2), &S(6), &S(10), &S(14), &M(4),  &M(5))>
+            <self.G(_ap, &S(3), &S(7), &S(11), &S(15), &M(6),  &M(7))>
 
-        <self.G(_ap, &S(0), &S(5), &S(10), &S(15), &M(8),  &M(9))>
-        <self.G(_ap, &S(1), &S(6), &S(11), &S(12), &M(10), &M(11))>
-        <self.G(_ap, &S(2), &S(7), &S(8),  &S(13), &M(12), &M(13))>
-        <self.G(_ap, &S(3), &S(4), &S(9),  &S(14), &M(14), &M(15))>
+            <self.G(_ap, &S(0), &S(5), &S(10), &S(15), &M(8),  &M(9))>
+            <self.G(_ap, &S(1), &S(6), &S(11), &S(12), &M(10), &M(11))>
+            <self.G(_ap, &S(2), &S(7), &S(8),  &S(13), &M(12), &M(13))>
+            <self.G(_ap, &S(3), &S(4), &S(9),  &S(14), &M(14), &M(15))>
         }
     }
 

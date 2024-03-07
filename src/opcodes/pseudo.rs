@@ -10,11 +10,13 @@ use bitcoin_script::bitcoin_script;
 /// OP_4PICK
 /// The 4 items n back in the stack are copied to the top.
 pub fn OP_4PICK() -> ScriptBuf {
-    bitcoin_script! { OP_ADD
-    OP_DUP  OP_PICK OP_SWAP
-    OP_DUP  OP_PICK OP_SWAP
-    OP_DUP  OP_PICK OP_SWAP
-    OP_1SUB OP_PICK }
+    bitcoin_script! { 
+        OP_ADD
+        OP_DUP  OP_PICK OP_SWAP
+        OP_DUP  OP_PICK OP_SWAP
+        OP_DUP  OP_PICK OP_SWAP
+        OP_1SUB OP_PICK 
+    }
 }
 
 /// OP_4ROLL
@@ -31,7 +33,7 @@ pub fn OP_4ROLL() -> ScriptBuf {
 
 pub fn OP_4DUP() -> ScriptBuf {
     bitcoin_script! {
-    OP_2OVER OP_2OVER
+        OP_2OVER OP_2OVER
     }
 }
 
@@ -43,8 +45,8 @@ pub fn OP_4DROP() -> ScriptBuf {
 
 pub fn OP_4SWAP() -> ScriptBuf {
     bitcoin_script! {
-    <7> OP_ROLL <7> OP_ROLL
-    <7> OP_ROLL <7> OP_ROLL
+        <7> OP_ROLL <7> OP_ROLL
+        <7> OP_ROLL <7> OP_ROLL
     }
 }
 

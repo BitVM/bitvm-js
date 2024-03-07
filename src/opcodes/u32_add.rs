@@ -25,15 +25,15 @@ pub fn u8_add_carrier() -> ScriptBuf {
 
 pub fn u8_add() -> ScriptBuf {
     bitcoin_script! {
-    OP_ADD
-    OP_DUP
-    <255>
-    OP_GREATERTHAN
-    OP_IF
-        <256>
-        OP_SUB
-    OP_ENDIF
-}
+        OP_ADD
+        OP_DUP
+        <255>
+        OP_GREATERTHAN
+        OP_IF
+            <256>
+            OP_SUB
+        OP_ENDIF
+    }
 }
 
 // 
