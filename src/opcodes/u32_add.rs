@@ -20,7 +20,7 @@ pub fn u8_add_carrier() -> ScriptBuf {
         OP_ELSE
             <0>
         OP_ENDIF
-}
+    }
 }
 
 pub fn u8_add() -> ScriptBuf {
@@ -36,10 +36,9 @@ pub fn u8_add() -> ScriptBuf {
     }
 }
 
-// 
-// Addition of two u32 values represented as u8
-// Copies the first summand `a` and drops `b`
-//  
+
+/// Addition of two u32 values represented as u8
+/// Copies the first summand `a` and drops `b` 
 pub fn u32_add(a: u32, b: u32) -> ScriptBuf {
     assert_ne!(a, b);
     bitcoin_script! {
@@ -75,10 +74,9 @@ pub fn u32_add(a: u32, b: u32) -> ScriptBuf {
 }
 
 
-//
-// Addition of two u32 values represented as u8
-// Drops both summands `a` and `b`
-//
+
+/// Addition of two u32 values represented as u8
+/// Drops both summands `a` and `b`
 pub fn u32_add_drop(a: u32, b: u32) -> ScriptBuf {
     assert_ne!(a, b);
     bitcoin_script! {
