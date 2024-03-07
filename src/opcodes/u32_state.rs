@@ -6,7 +6,7 @@ use bitcoin::ScriptBuf;
 use bitcoin_script::bitcoin_script;
 use super::super::actor::Actor;
 
-// TODO: Implememnt actor class and copy over rest of this file from the javascript bitvm
+// TODO: Implement actor class and copy over rest of this file from the javascript bitvm
 // implementation
 
 pub fn bit_state<T: Actor>(mut actor: T, identifier: &str, index: Option<u32>) -> ScriptBuf {

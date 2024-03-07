@@ -74,7 +74,7 @@ pub fn u32_sub(a: u32, b: u32) -> ScriptBuf {
 
 /// 
 /// Subtraction of two u32 values represented as u8
-/// Drops boths summands `a` and `b`
+/// Drops both summands `a` and `b`
 pub fn u32_sub_drop(a: u32, b: u32) -> ScriptBuf {
     assert_ne!(a, b);
     bitcoin_script! {
