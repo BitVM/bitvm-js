@@ -1,0 +1,16 @@
+{
+  "name": "bitvm",
+  "version": "1.0.0",
+  "description": "A work-in-progress toy-implementation of BitVM. This is still extremely experimental code which's purpose is mostly for us to figure out how to build BitVM. This project is only meant to be a draft or blueprint for a proper implementation in Rust.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "module"
+}
