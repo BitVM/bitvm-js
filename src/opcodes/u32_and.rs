@@ -3,13 +3,13 @@
 use crate::opcodes::u32_zip::u32_copy_zip;
 
 use super::pushable;
-use bitcoin::ScriptBuf;
-use bitcoin_script::bitcoin_script;
+use bitcoin::ScriptBuf as Script;
+use bitcoin_script::bitcoin_script as script;
 
 /// The bitwise AND of two u8 elements.
 /// Expects the u32_xor_table to be on the stack
-pub fn u8_and(i: u32) -> ScriptBuf {
-    bitcoin_script! {
+pub fn u8_and(i: u32) -> Script {
+    script! {
         // f_A = f(A)
         OP_DUP
         <i>
@@ -73,9 +73,9 @@ pub fn u8_and(i: u32) -> ScriptBuf {
 
 /// The bitwise AND of two u32 elements.
 /// Expects the u32_xor_table to be on the stack
-pub fn u32_and(a: u32, b: u32, stack_size: u32) -> ScriptBuf {
+pub fn u32_and(a: u32, b: u32, stack_size: u32) -> Script {
     assert_ne!(a, b);
-    bitcoin_script! {
+    script! {
         <u32_copy_zip(a, b)>
 
         <u8_and(8 + (stack_size - 2) * 4)>

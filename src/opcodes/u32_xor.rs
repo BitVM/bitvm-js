@@ -1,11 +1,13 @@
 #![allow(dead_code)]
-use super::pushable;
-use bitcoin::{opcodes::all::OP_2DROP, ScriptBuf};
-use bitcoin_script::bitcoin_script;
-use crate::opcodes::{u32_zip::u32_copy_zip, unroll};
+use super::{pushable, unroll};
+use crate::opcodes::u32_zip::u32_copy_zip;
+use bitcoin::ScriptBuf as Script;
+use bitcoin_script::bitcoin_script as script;
 
-pub fn u8_xor(i: u32) -> ScriptBuf {
-    bitcoin_script! {
+
+/// Bitwise XOR of two u8 elements
+pub fn u8_xor(i: u32) -> Script {
+    script! {
         // f_A = f(A)
         OP_DUP
         <i>
@@ -76,9 +78,11 @@ pub fn u8_xor(i: u32) -> ScriptBuf {
     }
 }
 
-pub fn u32_xor(a: u32, b: u32, stack_size: u32) -> ScriptBuf {
+/// Bitwise XOR of two u32 elements
+/// Expects u32_xor_table on the stack
+pub fn u32_xor(a: u32, b: u32, stack_size: u32) -> Script {
     assert_ne!(a, b);
-    bitcoin_script! {
+    script! {
         <u32_copy_zip(a, b)>
 
         // 
@@ -107,11 +111,10 @@ pub fn u32_xor(a: u32, b: u32, stack_size: u32) -> ScriptBuf {
 }
 
 
-//
-// Push XOR Table
-//
-pub fn u32_push_xor_table() -> ScriptBuf {
-    bitcoin_script! {
+
+/// Push the u32 XOR table
+pub fn u32_push_xor_table() -> Script {
+    script! {
         <85>
         OP_DUP
         <84>
@@ -322,11 +325,10 @@ pub fn u32_push_xor_table() -> ScriptBuf {
     }
 }
 
-//
-// Drop XOR Table
-//
-pub fn u32_drop_xor_table() -> ScriptBuf {
-    bitcoin_script! {
-        <unroll(128, |_| OP_2DROP)>
+
+/// Drop the u32 XOR table
+pub fn u32_drop_xor_table() -> Script {
+    script! {
+        <unroll(128, |_| script!{OP_2DROP})>
     }
 }

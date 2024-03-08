@@ -1,7 +1,7 @@
-# BitVM - Smarter Bitcoin Contracts
+# BitVM: Smarter Bitcoin Contracts
 
-The official BitVM implementation. 
+The official [BitVM](https://bitvm.org) implementation. Work in progress.
 
 
 ## Draft Implementation
-You can find our [draft implementation here](https://github.com/BitVM/bitvm-js)
+You can find our [draft implementation here](https://github.com/BitVM/bitvm-js). 

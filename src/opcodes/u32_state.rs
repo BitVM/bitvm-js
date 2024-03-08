@@ -2,16 +2,16 @@
 
 use super::pushable;
 use super::unroll;
-use bitcoin::ScriptBuf;
-use bitcoin_script::bitcoin_script;
+use bitcoin::ScriptBuf as Script;
+use bitcoin_script::bitcoin_script as script;
 use super::super::actor::Actor;
 
 // TODO: Implement actor class and copy over rest of this file from the javascript bitvm
 // implementation
 
-pub fn bit_state<T: Actor>(mut actor: T, identifier: &str, index: Option<u32>) -> ScriptBuf {
+pub fn bit_state<T: Actor>(mut actor: T, identifier: &str, index: Option<u32>) -> Script {
 	// TODO: validate size of preimage here 
-	bitcoin_script! {
+	script! {
 		OP_RIPEMD160
 		OP_DUP
 		<actor.hashlock(identifier, index, 1)> // hash1

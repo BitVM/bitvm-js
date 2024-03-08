@@ -2,29 +2,35 @@
 
 use super::pushable;
 use super::unroll;
-use bitcoin::ScriptBuf;
-use bitcoin_script::bitcoin_script;
+use bitcoin::ScriptBuf as Script;
+use bitcoin_script::bitcoin_script as script;
 
-pub fn u32_rrot16() -> ScriptBuf {
-    bitcoin_script! {
+
+/// Right rotation of an u32 element by 16 bits
+pub fn u32_rrot16() -> Script {
+    script! {
       OP_2SWAP
     }
 }
 
-pub fn u32_rrot8() -> ScriptBuf {
-    bitcoin_script! {
+
+/// Right rotation of an u32 element by 8 bits
+pub fn u32_rrot8() -> Script {
+    script! {
       <3> OP_ROLL
       <3> OP_ROLL
       <3> OP_ROLL
     }
 }
 
-pub fn u8_rrot12() -> ScriptBuf {
-    bitcoin_script! {
+
+/// Right rotation of an u8 element by 12 bits
+pub fn u8_rrot12() -> Script {
+    script! {
       <0>
       OP_TOALTSTACK
 
-      <unroll(4, |i| bitcoin_script!{
+      <unroll(4, |i| script!{
           OP_DUP
           <127>
           OP_GREATERTHAN
@@ -45,41 +51,41 @@ pub fn u8_rrot12() -> ScriptBuf {
     }
 }
 
-///
-/// Right Rotation by 12 bits
-///
-pub fn u32_rrot12() -> ScriptBuf {
-    bitcoin_script! {
-                u8_rrot12
-    <2> OP_ROLL u8_rrot12
-    <4> OP_ROLL u8_rrot12
-    <6> OP_ROLL u8_rrot12
 
-    //
-    // Glue it all together
-    //
+/// Right rotation of an u32 element by 12 bits
+pub fn u32_rrot12() -> Script {
+    script! {
+                  u8_rrot12
+      <2> OP_ROLL u8_rrot12
+      <4> OP_ROLL u8_rrot12
+      <6> OP_ROLL u8_rrot12
 
-    <5> OP_ROLL
-    <6> OP_ROLL
-    OP_ADD
-    OP_SWAP
+      //
+      // Glue it all together
+      //
+      <5> OP_ROLL
+      <6> OP_ROLL
+      OP_ADD
+      OP_SWAP
 
-    <6> OP_ROLL
-    OP_ADD
+      <6> OP_ROLL
+      OP_ADD
 
-    OP_ROT
-    <3> OP_ROLL
-    OP_ADD
+      OP_ROT
+      <3> OP_ROLL
+      OP_ADD
 
-    <4> OP_ROLL
+      <4> OP_ROLL
 
-    <4> OP_ROLL
-    OP_ADD
+      <4> OP_ROLL
+      OP_ADD
     }
 }
 
-pub fn u8_rrot7(i: u32) -> ScriptBuf {
-    bitcoin_script! {
+
+/// Right rotation of an u8 element by 7 bits
+pub fn u8_rrot7(i: u32) -> Script {
+    script! {
       <i> OP_ROLL
       OP_DUP
       <127>
@@ -94,11 +100,10 @@ pub fn u8_rrot7(i: u32) -> ScriptBuf {
     }
 }
 
-//
-// Right Rotation by 7 bits
-//
-pub fn u32_rrot7() -> ScriptBuf {
-    bitcoin_script! {
+
+/// Right rotation of an u32 element by 7 bits
+pub fn u32_rrot7() -> Script {
+    script! {
 
       // First Byte
       <u8_rrot7(0)>

@@ -11,8 +11,8 @@ use crate::opcodes::{
 };
 
 use super::pushable;
-use bitcoin::ScriptBuf;
-use bitcoin_script::bitcoin_script;
+use bitcoin::ScriptBuf as Script;
+use bitcoin_script::bitcoin_script as script;
 
 const IV: [u32; 8] = [
     0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
@@ -73,11 +73,11 @@ trait BlakeEnv {
     fn ptr_insert(&mut self, identifier: &str);
     /// Get the position of `identifier`, then delete it
     fn ptr_extract(&mut self, identifier: &str) -> u32;
-    fn G(&mut self, _ap: u32, a: &str, b: &str, c: &str, d: &str, m0: &str, m1: &str) -> ScriptBuf;
-    fn round(&mut self, _ap: u32) -> ScriptBuf;
+    fn G(&mut self, _ap: u32, a: &str, b: &str, c: &str, d: &str, m0: &str, m1: &str) -> Script;
+    fn round(&mut self, _ap: u32) -> Script;
     fn permute(&mut self);
-    fn compress(&mut self, _ap: u32) -> ScriptBuf;
-    fn compress_160(&mut self, _ap: u32) -> ScriptBuf;
+    fn compress(&mut self, _ap: u32) -> Script;
+    fn compress_160(&mut self, _ap: u32) -> Script;
 }
 
 impl BlakeEnv for HashMap<String, u32> {
@@ -102,8 +102,8 @@ impl BlakeEnv for HashMap<String, u32> {
         }
     }
 
-    fn G(&mut self, _ap: u32, a: &str, b: &str, c: &str, d: &str, m0: &str, m1: &str) -> ScriptBuf {
-        let script = bitcoin_script! {
+    fn G(&mut self, _ap: u32, a: &str, b: &str, c: &str, d: &str, m0: &str, m1: &str) -> Script {
+        let script = script! {
             // z = a+b+m0
             <u32_add(*self.get(b).unwrap(), self.ptr_extract(a))>
             <u32_add(*self.get(m0).unwrap() + 1, 0)>
@@ -152,8 +152,8 @@ impl BlakeEnv for HashMap<String, u32> {
         script
     }
 
-    fn round(&mut self, _ap: u32) -> ScriptBuf {
-        bitcoin_script! {
+    fn round(&mut self, _ap: u32) -> Script {
+        script! {
             <self.G(_ap, &S(0), &S(4), &S(8),  &S(12), &M(0),  &M(1))>
             <self.G(_ap, &S(1), &S(5), &S(9),  &S(13), &M(2),  &M(3))>
             <self.G(_ap, &S(2), &S(6), &S(10), &S(14), &M(4),  &M(5))>
@@ -180,8 +180,8 @@ impl BlakeEnv for HashMap<String, u32> {
         }
     }
 
-    fn compress(&mut self, _ap: u32) -> ScriptBuf {
-        bitcoin_script! {
+    fn compress(&mut self, _ap: u32) -> Script {
+        script! {
             // Perform 7 rounds and permute after each round,
             // except for the last round
             <(|| {
@@ -228,8 +228,8 @@ impl BlakeEnv for HashMap<String, u32> {
         }
     }
 
-    fn compress_160(&mut self, _ap: u32) -> ScriptBuf {
-        bitcoin_script! {
+    fn compress_160(&mut self, _ap: u32) -> Script {
+        script! {
             // Perform 7 rounds and permute after each round,
             // except for the last round
             <(|| {
@@ -277,9 +277,9 @@ impl BlakeEnv for HashMap<String, u32> {
 ///
 /// Blake3 taking a 64-byte message and returning a 32-byte digest
 ///
-pub fn blake3() -> ScriptBuf {
+pub fn blake3() -> Script {
     let mut blake_env = ptr_init();
-    bitcoin_script! {
+    script! {
         // Initialize our lookup table
         // We have to do that only once per program
         u32_push_xor_table
@@ -300,9 +300,9 @@ pub fn blake3() -> ScriptBuf {
     }
 }
 
-pub fn blake3_160() -> ScriptBuf {
+pub fn blake3_160() -> Script {
     let mut blake_env = ptr_init_160();
-    bitcoin_script! {
+    script! {
         // Message zero-padding to 64-byte block
         <unroll(6, |_| u32_push(0))>
 
@@ -328,7 +328,7 @@ pub fn blake3_160() -> ScriptBuf {
 #[cfg(test)]
 mod tests {
     use bitcoin::{hashes::Hash, TapLeafHash, Transaction};
-    use bitcoin_script::bitcoin_script;
+    use bitcoin_script::bitcoin_script as script;
     use bitcoin_scriptexec::{Exec, ExecCtx, Options, TxTemplate};
 
     use crate::opcodes::blake3::blake3_160;
@@ -370,7 +370,7 @@ mod tests {
 
     #[test]
     fn test_initial_state() {
-        let script = bitcoin_script! {
+        let script = script! {
             ~initial_state(64).iter().map(|x| u32_push(*x)).collect::<Vec<_>>()~
         };
         let mut exec = Exec::new(
@@ -411,7 +411,7 @@ mod tests {
 
     #[test]
     fn test_blake3() {
-        let script = bitcoin_script! {
+        let script = script! {
             <unroll(16, |_| u32_push(1))>
             blake3
             <u32_push(0x700e822d)>
@@ -472,7 +472,7 @@ mod tests {
 
     #[test]
     fn test_blake3_160() {
-        let script = bitcoin_script! {
+        let script = script! {
             <unroll(10, |_| u32_push(1))>
             blake3_160
             <u32_push(0xa759f48b)>

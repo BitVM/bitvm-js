@@ -3,11 +3,11 @@ use crate::opcodes::u32_zip::u32_zip;
 
 use super::pushable;
 use super::u32_zip::u32_copy_zip;
-use bitcoin::ScriptBuf;
-use bitcoin_script::bitcoin_script;
+use bitcoin::ScriptBuf as Script;
+use bitcoin_script::bitcoin_script as script;
 
-pub fn u8_sub_carrier() -> ScriptBuf {
-    bitcoin_script! {
+pub fn u8_sub_carrier() -> Script {
+    script! {
         OP_SUB
         OP_DUP
         <0>
@@ -22,8 +22,8 @@ pub fn u8_sub_carrier() -> ScriptBuf {
     }
 }
 
-pub fn u8_sub() -> ScriptBuf {
-    bitcoin_script! {
+pub fn u8_sub() -> Script {
+    script! {
         OP_SUB
         OP_DUP
         <0>
@@ -37,10 +37,10 @@ pub fn u8_sub() -> ScriptBuf {
 
 /// Subtraction of two u32 values represented as u8
 /// Copies the first summand `a` and drops `b`
-pub fn u32_sub(a: u32, b: u32) -> ScriptBuf {
+pub fn u32_sub(a: u32, b: u32) -> Script {
     assert_ne!(a, b);
 
-    bitcoin_script! {
+    script! {
         <u32_copy_zip(a, b)>
 
         // A0 - B0
@@ -75,9 +75,9 @@ pub fn u32_sub(a: u32, b: u32) -> ScriptBuf {
 /// 
 /// Subtraction of two u32 values represented as u8
 /// Drops both summands `a` and `b`
-pub fn u32_sub_drop(a: u32, b: u32) -> ScriptBuf {
+pub fn u32_sub_drop(a: u32, b: u32) -> Script {
     assert_ne!(a, b);
-    bitcoin_script! {
+    script! {
         <u32_zip(a,b)>
 
         // A0 - B0
