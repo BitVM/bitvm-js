@@ -247,7 +247,7 @@ export class TimeoutLeaf extends Leaf {
 
 export function compileGraph(graph, outpoint, params, start = 'START') {
     console.log('Compiling graph...')
-    const StartTx = graph.[start][0]
+    const StartTx = graph[start][0]
     const startTx = new StartTx(params, graph, outpoint)
     const compiledGraph = startTx.toGraph()
     compiledGraph.START = [startTx]
