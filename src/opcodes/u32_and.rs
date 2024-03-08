@@ -6,6 +6,8 @@ use super::pushable;
 use bitcoin::ScriptBuf;
 use bitcoin_script::bitcoin_script;
 
+/// The bitwise AND of two u8 elements.
+/// Expects the u32_xor_table to be on the stack
 pub fn u8_and(i: u32) -> ScriptBuf {
     bitcoin_script! {
         // f_A = f(A)
@@ -69,7 +71,8 @@ pub fn u8_and(i: u32) -> ScriptBuf {
     }
 }
 
-// Expects the u32_xor_table to be on the stack
+/// The bitwise AND of two u32 elements.
+/// Expects the u32_xor_table to be on the stack
 pub fn u32_and(a: u32, b: u32, stack_size: u32) -> ScriptBuf {
     assert_ne!(a, b);
     bitcoin_script! {
