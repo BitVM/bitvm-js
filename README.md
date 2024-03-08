@@ -1,3 +1,7 @@
-# BitVM Rust Implementation 
+# BitVM - Smarter Bitcoin Contracts
 
-You can find the [draft implementation here](https://github.com/BitVM/bitvm-js)
+The official BitVM implementation. 
+
+
+## Draft Implementation
+You can find our [draft implementation here](https://github.com/BitVM/bitvm-js)
