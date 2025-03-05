@@ -7052,7 +7052,7 @@ function hashTx(template, index, config = {}) {
         throw new Error('Invalid hash type: ' + String(sigflag));
     }
     if (extflag < 0 || extflag > 127) {
-        throw new Error('Extention flag out of range: ' + String(extflag));
+        throw new Error('Extension flag out of range: ' + String(extflag));
     }
     const { txid, vout, sequence, witness = [] } = input[index];
     const isAnyPay = (sigflag & 0x80) === 0x80;
