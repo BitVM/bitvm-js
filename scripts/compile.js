@@ -28,10 +28,16 @@ function optimize(code) {
             if (code[i-1] === 1 || code[i-1] === OP_1) {
                 code.splice(i-1, 2, OP_1ADD)
             }
+            if (code[i-1] === 0 || code[i-1] === OP_0) {
+                code.splice(i-1, 2)
+            }
         }
         if (code[i] === OP_SUB) {
             if (code[i-1] === 1 || code[i-1] === OP_1) {
                 code.splice(i-1, 2, OP_1SUB)
+            }
+            if (code[i-1] === 0 || code[i-1] === OP_0) {
+                code.splice(i-1, 2)
             }
         }
         if (code[i] === OP_DROP && code[i-1] === OP_DROP) {
