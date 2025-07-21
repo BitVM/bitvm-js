@@ -387,9 +387,9 @@ const mMultiply = (base, useMHat0, scratch = 0) => {
     return [
         // Bring the 4 state nibbles on top of the stack
         op_copy_state_to_top(15 - A[3], scratch + 0),
-        op_copy_state_to_top(15 - A[2], scratch + 0),
-        op_copy_state_to_top(15 - A[1], scratch + 0),
-        op_copy_state_to_top(15 - A[0], scratch + 0),
+        op_copy_state_to_top(15 - A[2], scratch + 1),
+        op_copy_state_to_top(15 - A[1], scratch + 2),
+        op_copy_state_to_top(15 - A[0], scratch + 3),
 
         // Make 4 copies of the state nibbles
         OP_2OVER, OP_2OVER, 
