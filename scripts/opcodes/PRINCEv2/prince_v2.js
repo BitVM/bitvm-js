@@ -79,18 +79,18 @@ const M = [0x7, 0xb, 0xd, 0xe] // m0 m1 m2 m3
  *  Memory layout:
  *    <state                (16 bytes)> (s0, s1, ..., s15)
  *    <key                  (32 bytes)> (k0_0, ..., k0_15, k1_0, ..., k1_15)
- *    <shift_table          (16 bytes)>
+ *    <and_m0_shift_table   (16 bytes)>
+ *    <and_m1_shift_table   (16 bytes)>
+ *    <and_m2_shift_table   (16 bytes)> 
+ *    <and_m3_shift_table   (16 bytes)> 
  *    <sbox_table           (16 bytes)>
- *    <sbox_inv_table       (16 bytes)>
  *    <xor_table            (256 bytes)>    
  *    <and_m0_table         (16 bytes)>
  *    <and_m1_table         (16 bytes)>
  *    <and_m2_table         (16 bytes)>
  *    <and_m3_table         (16 bytes)>
- *    <and_m0_shift_table   (16 bytes)>
- *    <and_m1_shift_table   (16 bytes)>
- *    <and_m2_shift_table   (16 bytes)> 
- *    <and_m3_shift_table   (16 bytes)> 
+ *    <sbox_inv_table       (16 bytes)>
+ *    <shift_table          (16 bytes)>
  * 
  */
 
@@ -103,22 +103,23 @@ const SIZE_SBOX_TABLE = 16
 const SIZE_SBOX_INV_TABLE = 16
 const SIZE_XOR_TABLE = 256
 const SIZE_AND_TABLE = 16
+const SIZE_MEMORY = SIZE_STATE + SIZE_KEY + SIZE_SHIFT_TABLE + SIZE_SBOX_TABLE + SIZE_SBOX_INV_TABLE + SIZE_XOR_TABLE + SIZE_AND_TABLE * 8
 
 // Addresses
 const ADDR_STATE = 0
 const ADDR_KEY = ADDR_STATE + SIZE_STATE
-const ADDR_SHIFT_TABLE = ADDR_KEY + SIZE_KEY
-const ADDR_SBOX_TABLE = ADDR_SHIFT_TABLE + SIZE_SHIFT_TABLE
-const ADDR_SBOX_INV_TABLE = ADDR_SBOX_TABLE + SIZE_SBOX_TABLE
-const ADDR_XOR_TABLE = ADDR_SBOX_INV_TABLE + SIZE_SBOX_INV_TABLE
+const ADDR_AND_M0_SHIFT_TABLE = ADDR_KEY + SIZE_KEY
+const ADDR_AND_M1_SHIFT_TABLE = ADDR_AND_M0_SHIFT_TABLE + SIZE_AND_TABLE
+const ADDR_AND_M2_SHIFT_TABLE = ADDR_AND_M1_SHIFT_TABLE + SIZE_AND_TABLE
+const ADDR_AND_M3_SHIFT_TABLE = ADDR_AND_M2_SHIFT_TABLE + SIZE_AND_TABLE
+const ADDR_SBOX_TABLE = ADDR_AND_M3_SHIFT_TABLE + SIZE_AND_TABLE
+const ADDR_XOR_TABLE = ADDR_SBOX_TABLE + SIZE_SBOX_TABLE
 const ADDR_AND_M0_TABLE = ADDR_XOR_TABLE + SIZE_XOR_TABLE
 const ADDR_AND_M1_TABLE = ADDR_AND_M0_TABLE + SIZE_AND_TABLE
 const ADDR_AND_M2_TABLE = ADDR_AND_M1_TABLE + SIZE_AND_TABLE
 const ADDR_AND_M3_TABLE = ADDR_AND_M2_TABLE + SIZE_AND_TABLE
-const ADDR_AND_M0_SHIFT_TABLE = ADDR_AND_M3_TABLE + SIZE_AND_TABLE
-const ADDR_AND_M1_SHIFT_TABLE = ADDR_AND_M0_SHIFT_TABLE + SIZE_AND_TABLE
-const ADDR_AND_M2_SHIFT_TABLE = ADDR_AND_M1_SHIFT_TABLE + SIZE_AND_TABLE
-const ADDR_AND_M3_SHIFT_TABLE = ADDR_AND_M2_SHIFT_TABLE + SIZE_AND_TABLE
+const ADDR_SBOX_INV_TABLE = ADDR_AND_M3_TABLE + SIZE_AND_TABLE
+const ADDR_SHIFT_TABLE = ADDR_SBOX_INV_TABLE + SIZE_SBOX_INV_TABLE
 
 // XOR table
 const push_xor_table = loop(16, i => loop(16, j => (15 - i) ^ (15 - j)))
@@ -126,6 +127,7 @@ const push_xor_table = loop(16, i => loop(16, j => (15 - i) ^ (15 - j)))
 const push_shift_table = loop(SIZE_SHIFT_TABLE, i => (15 - i) * 16 + ADDR_XOR_TABLE - 1)
 
 const op_shift4 = (scratch = 0) => [
+    stats('op_shift4'),
     scratch + ADDR_SHIFT_TABLE,
     OP_ADD,
     OP_PICK,
@@ -164,15 +166,7 @@ const op_xor_constant = (constant, scratch = 0) => {
 }
 
 
-const drop_tables = loop(
-    SIZE_SHIFT_TABLE
-    + SIZE_KEY
-    + SIZE_SBOX_TABLE
-    + SIZE_SBOX_INV_TABLE
-    + SIZE_XOR_TABLE
-    + SIZE_AND_TABLE * 8, 
-    _ => OP_DROP
-)
+const drop_tables = loop(SIZE_MEMORY - SIZE_STATE, _ => OP_DROP)
 
 
 // AND table
@@ -187,7 +181,7 @@ const push_and_shift_table_m2 = loop(16, i => (M[2] & i) * 16 + ADDR_XOR_TABLE -
 const push_and_shift_table_m3 = loop(16, i => (M[3] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
 
 
-const push_and_table = [
+const push_and_tables = [
     push_and_shift_table_m3,
     push_and_shift_table_m2,
     push_and_shift_table_m1,
@@ -360,14 +354,22 @@ const op_copy_key_to_top = (index, scratch = 0) => [
 
 
 const push_tables = _ => [
-    push_and_table,
-    push_xor_table,
-    push_sbox_inv_table,
-    push_sbox_table,
     push_shift_table,
+    push_sbox_inv_table,
+
+    push_and_table_m3,
+    push_and_table_m2,
+    push_and_table_m1,
+    push_and_table_m0,
+    push_xor_table,
+    push_sbox_table,
+    push_and_shift_table_m3,
+    push_and_shift_table_m2,
+    push_and_shift_table_m1,
+    push_and_shift_table_m0,
+
     init_pointers(),
 ]
-
 
 
 /*───────────────────────────────────────────────────────────────
@@ -376,8 +378,8 @@ const push_tables = _ => [
 
 
 
-/* build one 4‑nibble “slice” (rows base…base+3) */
-const mMultiply = (base, useMHat0, scratch = 0) => {
+/* state becomes state multiplied by specified matrix M */
+const prince_MHatMultiply = (base, useMHat0, scratch = 0) => {
     /* coefficient selector:   MHat0 ⇒ +0   ·   MHat1 ⇒ +1 */
     const rot = useMHat0 ? 0 : 1;
 
@@ -434,10 +436,10 @@ const mMultiply = (base, useMHat0, scratch = 0) => {
 /* Whole M‑layer:  0‑3 ×MHat0  ·  4‑7,8‑11 ×MHat1  · 12‑15 ×MHat0 */
 const prince_m_layer = _ => [
     stats('prince_m_layer'),
-    mMultiply(0, true),     // rows 0‑3
-    mMultiply(4, false),     // rows 4‑7
-    mMultiply(8, false),     // rows 8‑11
-    mMultiply(12, true),     // rows 12‑15
+    prince_MHatMultiply(0, true),      // rows 0‑3
+    prince_MHatMultiply(4, false),     // rows 4‑7
+    prince_MHatMultiply(8, false),     // rows 8‑11
+    prince_MHatMultiply(12, true),     // rows 12‑15
 ];
 
 
@@ -618,3 +620,4 @@ const push_dummy_msg = loop(SIZE_STATE, i => 0);
 // Possible optimizations: 
 // Optimize table pushes using copy opcodes instead of push opcodes
 // Optimize the state copying to use the order of the states in the stack
+// Combine operations to reduce the number of move_state_to_top 
