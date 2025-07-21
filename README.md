@@ -12,4 +12,4 @@ Serve the root directory with a local web server. For example, Python3 `python3 
 
 ## Bitcoin Script Interpreter
 
-Our Bitcoin Script [interpreter](https://bitvm.github.io/BitVM/run/interpreter.html) is a tool to develop complex Bitcoin Scripts.
+Our Bitcoin Script [interpreter](https://bitvm.github.io/BitVM-js/run/interpreter.html) is a tool to develop complex Bitcoin Scripts.
