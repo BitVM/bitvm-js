@@ -2,7 +2,7 @@
  *                                                             *
  *          PRINCE‑v2  (nibble implementation)                 *
  *                                                             *
- *                              by 1ˣ Group  – July 2025       *
+ *                              by 1ˣ Group  – July 2025       *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 
@@ -71,7 +71,7 @@ const PRINCE_SBOX_INVERSE = [
     0x5, 0xe, 0xc, 0x1
 ]
 
-const M = [0x7, 0xb, 0xd, 0xe] // m0 m1 m2 m3
+const M = [0x7, 0xb, 0xd, 0xe] // m0 m1 m2 m3
 
 /*───────────────────────────────────────────────────────────────
  * 1 ·  Memory layout
@@ -237,40 +237,41 @@ const op_and_m = (m, scratch = 0) => {
     }
 }
 
-const op_and_shift_m0 = (scratch = 0) => [
-    stats('op_and_shift_m0'),
+const op_and_m0_shift = (scratch = 0) => [
+    stats('op_and_m0_shift'),
     scratch + ADDR_AND_M0_SHIFT_TABLE - 1,
     OP_ADD,
     OP_PICK,
 ]
-const op_and_shift_m1 = (scratch = 0) => [
-    stats('op_and_shift_m1'),
+const op_and_m1_shift = (scratch = 0) => [
+    stats('op_and_m1_shift'),
     scratch + ADDR_AND_M1_SHIFT_TABLE - 1,
     OP_ADD,
     OP_PICK,
 ]
 
-const op_and_shift_m2 = (scratch = 0) => [
-    stats('op_and_shift_m2'),
+const op_and_m2_shift = (scratch = 0) => [
+    stats('op_and_m2_shift'),
     scratch + ADDR_AND_M2_SHIFT_TABLE - 1,
     OP_ADD,
     OP_PICK,
 ]
 
-const op_and_shift_m3 = (scratch = 0) => [
-    stats('op_and_shift_m3'),
+const op_and_m3_shift = (scratch = 0) => [
+    stats('op_and_m3_shift'),
     scratch + ADDR_AND_M3_SHIFT_TABLE - 1,
     OP_ADD,
     OP_PICK,
 ]
 
-const op_and_shift_m = (m, scratch = 0) => {
-    stats('op_and_shift_m')
+// AND with constant M[m], then shift by 4 bits
+const op_and_m_shift = (m, scratch = 0) => {
+    stats('op_and_m_shift')
     switch (m) {
-        case 0: return op_and_shift_m0(scratch)
-        case 1: return op_and_shift_m1(scratch)
-        case 2: return op_and_shift_m2(scratch)
-        case 3: return op_and_shift_m3(scratch)
+        case 0: return op_and_m0_shift(scratch)
+        case 1: return op_and_m1_shift(scratch)
+        case 2: return op_and_m2_shift(scratch)
+        case 3: return op_and_m3_shift(scratch)
     }
 }
 
@@ -406,17 +407,17 @@ const mMultiply = (base, useMHat0, scratch = 0) => {
 
             // (2) ⊕ second term  (C1 & a1)
             OP_SWAP,        // a1
-            op_and_shift_m(C_idx(r, 1), scratch + 4 * (4 - r) - 0),   // C1 & a1
+            op_and_m_shift(C_idx(r, 1), scratch + 4 * (4 - r) - 0),   // C1 & a1
             op_xor_shifted(scratch + 4 * (4 - r) - 1),                // partial ⊕   → stack‑1
 
             // (3) ⊕ third term  (C2 & a2)
             OP_SWAP,    // a2
-            op_and_shift_m(C_idx(r, 2), scratch + 4 * (4 - r) - 1),
+            op_and_m_shift(C_idx(r, 2), scratch + 4 * (4 - r) - 1),
             op_xor_shifted(scratch + 4 * (4 - r) - 2),
 
             // (4) ⊕ fourth term (C3 & a3)
             OP_SWAP,    // a3
-            op_and_shift_m(C_idx(r, 3), scratch + 4 * (4 - r) - 2),
+            op_and_m_shift(C_idx(r, 3), scratch + 4 * (4 - r) - 2),
             op_xor_shifted(scratch + 4 * (4 - r) - 3),                  // result bᵣ on TOS
 
             OP_TOALTSTACK,
@@ -433,10 +434,10 @@ const mMultiply = (base, useMHat0, scratch = 0) => {
 /* Whole M‑layer:  0‑3 ×MHat0  ·  4‑7,8‑11 ×MHat1  · 12‑15 ×MHat0 */
 const prince_m_layer = _ => [
     stats('prince_m_layer'),
-    mMultiply(0, true),     // rows 0‑3
-    mMultiply(4, false),     // rows 4‑7
-    mMultiply(8, false),     // rows 8‑11
-    mMultiply(12, true),     // rows 12‑15
+    mMultiply(0, true),     // rows 0‑3
+    mMultiply(4, false),     // rows 4‑7
+    mMultiply(8, false),     // rows 8‑11
+    mMultiply(12, true),     // rows 12‑15
 ];
 
 
@@ -599,16 +600,16 @@ const princev2_encrypt = [
 
 
 
-// // Test case
-// const push_dummy_key = loop(SIZE_KEY, i  => 0)
-// const push_dummy_msg = loop(SIZE_STATE, i => 0);
+// Test case
+const push_dummy_key = loop(SIZE_KEY, i  => 0)
+const push_dummy_msg = loop(SIZE_STATE, i => 0);
 
-// [
-//     push_dummy_key,
-//     push_dummy_msg,
-//     princev2_encrypt,
-//     console.table(window.STATS)
-// ]
+[
+    push_dummy_key,
+    push_dummy_msg,
+    princev2_encrypt,
+    console.table(window.STATS)
+];
 
 
 
@@ -616,3 +617,4 @@ const princev2_encrypt = [
 
 // Possible optimizations: 
 // Optimize table pushes using copy opcodes instead of push opcodes
+// Optimize the state copying to use the order of the states in the stack
