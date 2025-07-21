@@ -1,0 +1,710 @@
+<!-- <script src="prince_v2.js"></script> -->
+<script type="module">
+    import { preprocessJS } from 'https://bitvm.org/bitvm-js/scripts/compile.js'
+    import init, { run_script, script_asm_to_hex } from 'https://bitvm.org/bitvm-js/libs/bitcoin_scriptexec.js'
+    init()
+
+
+    async function test(text) {
+        const code = preprocessJS(text)
+        const compiledCode = script_asm_to_hex(code)
+        const result = await run_script(compiledCode, '');
+        const error = result.get('error')
+        if (error) {
+            console.error(error, result.get('final_stack').reverse().slice(0, 4), result)
+        } else {
+            console.log('Test passed')
+        }
+    }
+
+    // Load prince_v2.js
+    const source_code = await fetch('prince_v2.js').then(res => res.text())
+
+    // Test XOR: 0b0000 ^ 0b1111 = 0b1111
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Push key
+            loop(SIZE_KEY, i  => 0),
+            // Push state
+            loop(SIZE_STATE, i => 0),
+            
+            // Second operand
+            0b1111,
+            op_xor(),
+
+            // Compare result
+            0b1111,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+    // Test XOR: 0b1010 ^ 0b0101 = 0b1111
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Push key
+            loop(SIZE_KEY, i  => 0),
+            // Push state
+            loop(SIZE_STATE, i => 0b1010),
+            
+            // Second operand
+            0b0101,
+            op_xor(),
+
+            // Compare result
+            0b1111,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+    // Test XOR: 0b1010 ^ 0b0101 = 0b1111
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Push key
+            loop(SIZE_KEY, i  => 0),
+            // Push state
+            loop(SIZE_STATE, i => 0b1010),
+            
+            // Second operand
+            0b0101,
+            op_xor(),
+
+            // Compare result
+            0b1111,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+    // Test XOR scratch: 0b1010 ^ 0b0101 = 0b1111
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Push key
+            loop(SIZE_KEY, i  => 0),
+            // Push state
+            loop(SIZE_STATE, i => 0),
+            
+            // First operand
+            0b1010,
+            // Second operand
+            0b0101,
+            op_xor(1),
+
+            // Compare result
+            0b1111,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+    // Test Commutativity: (2 ^ 5) == (5 ^ 2)
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Dummy stack values
+            loop(SIZE_KEY, i  => 0),
+            loop(SIZE_STATE, i => 0),
+            
+            // --- First computation: 2 ^ 5 ---
+            // First operand (A)
+            2,
+            // Second operand (B)
+            5,
+            op_xor(),
+
+            // --- Second computation: 5 ^ 2 ---
+            // First operand (A)
+            5,
+            // Second operand (B)
+            2,
+            op_xor(1),
+
+            OP_EQUALVERIFY
+        ]
+    `)
+
+    
+    // Test op_xor_constant: 10 ^ 5 = 15
+    // (0b1010 ^ 0b0101 = 0b1111)
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Dummy stack values for address alignment
+            loop(SIZE_KEY, i  => 0),
+            loop(SIZE_STATE, i => 0b1010),
+
+            
+            // XOR it with the constant 5
+            op_xor_constant(0b0101),
+
+            // Compare with the correct result
+            0b1111,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+    // Test op_xor_constant: 10 ^ 5 = 15
+    // (0b1010 ^ 0b0101 = 0b1111)
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Dummy stack values for address alignment
+            loop(SIZE_KEY, i  => 0),
+            loop(SIZE_STATE, i => 0),
+
+            0b1010,
+            // XOR it with the constant 5
+            op_xor_constant(0b0101, 1),
+
+            // Compare with the correct result
+            0b1111,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+    // Test S-Box: SBOX_INV(SBOX(6)) == 6
+    // SBOX[6] = 9; SBOX_INV[9] = 6.
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Dummy stack values for address alignment
+            loop(SIZE_KEY, i  => 0),
+            loop(SIZE_STATE, i => 6),
+            
+
+            // Apply S-Box, then inverse S-Box
+            op_sbox(),
+            op_sbox_inv(),
+
+            // Compare with original value
+            6,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+    // Test AND lookup: 11 & 7 = 3
+    // (0b1011 & 0b0111 = 0b0011)
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Dummy stack values for address alignment
+            loop(SIZE_KEY, i  => 0),
+            loop(SIZE_STATE, i => 0b1011),
+            
+
+            // Apply the AND operation with the m0 matrix diagonal
+            op_and_m0(),
+
+            // Compare with the correct result
+            0b0011,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+    // Test AND lookup (m1): 12 & 11 = 8
+    // (0b1100 & 0b1011 = 0b1000)
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Dummy stack values for address alignment
+            loop(SIZE_KEY, i  => 0),
+            // Push state with value to test
+            loop(SIZE_STATE, i => 0b1100),
+            
+            // Apply the AND operation with the m1 matrix diagonal
+            op_and_m1(),
+
+            // Compare with the correct result
+            0b1000,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+    // Test AND lookup (m1): 12 & 11 = 8 with scratch
+    // (0b1100 & 0b1101 = 0b1100)
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Dummy stack values for address alignment
+            loop(SIZE_KEY, i  => 0),
+            // Push state with value to test
+            loop(SIZE_STATE, i => 0),
+            
+            0b1111,
+            0b1100,
+
+            // Apply the AND operation with the m1 matrix diagonal
+            op_and_m1(2),
+
+            // Compare with the correct result
+            0b1000,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+
+    // Test AND lookup (m1): 12 & 11 = 8
+    // (0b1100 & 0b1011 = 0b1000)
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Dummy key values for address alignment
+            loop(SIZE_KEY, i  => 0),
+            // Push state with value to test
+            loop(SIZE_STATE, i => 0b1100),
+            
+            // Apply the AND operation with the m1 matrix diagonal
+            op_and_m1(),
+
+            // Compare with the correct result
+            0b1000,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+
+    // Test AND lookup (m2): 10 & 13 = 8
+    // (0b1010 & 0b1101 = 0b1000)
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Dummy key values for address alignment
+            loop(SIZE_KEY, i  => 0),
+            // Push state with value to test
+            loop(SIZE_STATE, i => 0b1010),
+            
+            // Apply the AND operation with the m2 matrix diagonal
+            op_and_m2(),
+
+            // Compare with the correct result
+            0b1000,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+    // Test AND lookup (m3): 9 & 14 = 8
+    // (0b1001 & 0b1110 = 0b1000)
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Dummy key values for address alignment
+            loop(SIZE_KEY, i  => 0),
+            // Push state with value to test
+            loop(SIZE_STATE, i => 0b1001),
+            
+            // Apply the AND operation with the m3 matrix diagonal
+            op_and_m3(),
+
+            // Compare with the correct result
+            0b1000,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+    /*───────────────────────────────
+    * 1 · S‑box forward table
+    *    “SB(n) == REF_S[n]”  for n = 0…15
+    */
+    test(`
+        ${source_code};
+        const REF_S = [0xb,0xf,0x3,0x2,0xa,0xc,0x9,0x1,
+                    0x6,0x7,0x8,0x0,0xe,0x5,0xd,0x4];
+        [
+            push_tables(),
+            // Dummy key values for address alignment
+            loop(SIZE_KEY, i  => 0),
+            // Push state with value to test
+            loop(SIZE_STATE, i => 0),
+            
+            loop(16, i => [
+                i,               // nibble
+                op_sbox(1),       // SB(n)
+                REF_S[i],        // reference
+                OP_EQUALVERIFY
+            ])
+        ]
+    `)
+
+
+
+    // Test state pointer management (ENV) after reordering the stack
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Dummy key values for address alignment
+            loop(SIZE_KEY, i  => 0),
+            // Initial State: [15, 14, ..., 0]
+            loop(SIZE_STATE, i => i),
+
+            // Pick state nibble s2 (which has a value of 13) and save it.
+            // We use its initial, known position (2) for this.
+            2, OP_PICK, OP_TOALTSTACK,
+
+            // Now, reorder the stack by moving and dropping s0 and s1.
+            // This forces the ENV pointers for all other nibbles to be updated.
+            op_move_state_to_top(0), 
+            op_move_state_to_top(1),
+            op_move_state_to_top(15), 
+            op_move_state_to_top(12), 
+
+            // Now, try to copy s2 using its logical pointer.
+            // If ENV is working correctly, this should find s2 at its new
+            // physical position and copy its value (13) to the top.
+            op_copy_state_to_top(2),
+
+            // Compare the retrieved value with the original value from the altstack.
+            OP_FROMALTSTACK,
+            OP_EQUALVERIFY
+        ]
+    `)
+
+
+
+    // Test M-Layer: M(M(State)) == State
+    // This applies the prince_m_layer function twice and verifies
+    // it returns the original state.
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Dummy key values for address alignment
+            loop(SIZE_KEY, i  => 0),
+
+            // --- Original State ---
+            // Use a non-trivial state [15, 14, ..., 0]
+            loop(SIZE_STATE, i => 15 - i),
+            
+            
+            // --- Run M(M(State)) ---
+            prince_m_layer(),
+            prince_m_layer(),
+
+
+            loop(SIZE_STATE, i => [
+                op_move_state_to_top(SIZE_STATE - 1 - i),
+            ]),
+
+            // --- Compare the result, nibble by nibble, with the original state ---
+            loop(SIZE_STATE, i => [
+                i,
+                OP_EQUALVERIFY
+            ]),
+        ]
+    `)
+
+
+
+
+    // Test Case: Isolate the bug in the middle() function.
+    // This test provides a known input to just the prince_m_layer
+    test(`
+        ${source_code};
+
+        // Input state for middle() is the known state after 5 rounds
+        // of PRINCE with zero-key and zero-plaintext.
+        
+        const INPUT_STATE = split_into_nibbles(0x86832f7c06e0e644n);
+        const OUTPUT_STATE = split_into_nibbles(0x87d7d1a0a0ce4eecn);
+
+        [
+            // 1. SETUP
+            // Push a zero key
+            loop(SIZE_KEY, i => 0),
+            // Push the known input state
+            INPUT_STATE.reverse(),
+
+            
+            // Push tables and load data
+            push_tables(),
+            op_load_key(),
+            op_load_msg(),
+            
+            // 2. EXECUTION
+            // Run the isolated middle layer
+            prince_m_layer(),
+
+         
+            // Compare the result with the expected output
+            loop(SIZE_STATE, i => [
+                op_copy_state_to_top(i),
+                OUTPUT_STATE[i],
+                OP_EQUALVERIFY
+            ]),
+        ]
+    `)
+
+
+    // Test prince_shiftRow: prince_shiftRow_inverse(prince_shiftRow(State)) == State
+    test(`
+        ${source_code};
+        [
+            push_tables(),
+            // Dummy key for alignment
+            loop(SIZE_KEY, i  => 0),
+            // Initial State: [0, 1, 2, ..., 15]
+            loop(SIZE_STATE, i => SIZE_STATE - 1 - i),
+
+            // Apply the forward, then inverse shift operations
+            prince_shiftRow(false),
+            prince_shiftRow(true),
+
+            // Verify the state is back to its original order by
+            // checking if logical pointers still map to the correct values.
+            // op_copy_state_to_top(i) should return the value i.
+            loop(SIZE_STATE, i => [
+                op_copy_state_to_top(i),
+                i,
+                OP_EQUALVERIFY
+            ])
+        ]
+    `)
+
+
+    // Test add_key_rc: add_key_rc(add_key_rc(State)) == State
+    test(`
+        ${source_code};
+        [
+            // Push a dummy key
+            loop(SIZE_KEY, i  => i & 0x0f),
+
+            // Initial State: [0, 1, 2, ..., 15]
+            loop(SIZE_STATE, i => SIZE_STATE - 1 - i),
+            
+            // Push tables
+            push_tables(),
+
+            // Load key
+            op_load_key(),
+            // Load state
+            op_load_msg(),
+            
+            
+            // Run add_key_rc for round 1 twice
+            add_key_rc(1),
+            add_key_rc(1),
+
+            // Compare the final state with the original state
+            loop(SIZE_STATE, i => [
+                op_copy_state_to_top(i),
+                i,
+                OP_EQUALVERIFY
+            ])
+        ]
+    `)
+
+
+
+
+    test(`
+        ${source_code};
+
+        // Input state for middle() is the known state after 5 rounds
+        // of PRINCE with zero-key and zero-plaintext.
+        
+        const INPUT_STATE = split_into_nibbles(0x0000000000000000n);
+        const OUTPUT_STATE = split_into_nibbles(0x2390d7a4fd491ee9n);
+
+        [
+            // 1. SETUP
+            // Push a zero key
+            loop(SIZE_KEY, i => 0),
+            // Push the known input state
+            INPUT_STATE.reverse(),
+
+            
+            // Push tables and load data
+            push_tables(),
+            op_load_key(),
+            op_load_msg(),
+            
+            // 2. EXECUTION
+            
+            /* 5 forward rounds (1..5) */
+            loop(NUM_OF_ROUNDS/2 - 1, i => prince_roundForward(i + 1)),
+
+         
+            // Compare the result with the expected output
+            loop(SIZE_STATE, i => [
+                op_copy_state_to_top(i),
+                OUTPUT_STATE[i],
+                OP_EQUALVERIFY
+            ]),
+        ]
+    `)
+
+
+    // Test prince_roundForward and prince_roundInverse relationship
+    // This test verifies that prince_roundInverse(prince_roundForward(State)) == State.
+    // It confirms that the operations within a forward round are correctly
+    // and precisely undone by the operations in an inverse round.
+    test(`
+        ${source_code};
+        [
+            // 1. SETUP
+            // Push a non-zero key for k0 and k1.
+            loop(32, i => i & 0xf),
+
+            // Push a non-trivial initial state: [15, 14, ..., 0]
+            loop(SIZE_STATE, i => 15 - i),
+            
+            // Push lookup tables and initialize pointers.
+            push_tables(),
+
+            // Load key and message into the script's memory model.
+            op_load_key(),
+            op_load_msg(),
+            
+            
+            // 2. EXECUTION
+            // Apply a forward round (using round 1 constants and k1).
+            prince_roundForward(2),
+            
+            // Apply the corresponding inverse round.
+            prince_roundInverse(2),
+
+
+            // 3. VERIFICATION
+            // Reorder the stack to [0, 1, ..., 15] for easy comparison.
+            loop(SIZE_STATE, i => op_move_state_to_top(SIZE_STATE - 1 - i)),
+
+            // Compare the final state with the original state, nibble by nibble.
+            loop(SIZE_STATE, i => [
+                i,
+                OP_EQUALVERIFY
+            ]),
+        ]
+    `)
+    
+
+
+    // Test Case: Isolate the bug in the middle() function.
+    // This test provides a known input to just the middle() function and
+    // checks for a known correct output. The prince_roundForward/prince_roundInverse test
+    // passed, which isolates the bug to this specific component.
+    test(`
+        ${source_code};
+
+        // Input state for middle() is the known state after 5 rounds
+        // of PRINCE with zero-key and zero-plaintext.
+        
+        const INPUT_STATE = split_into_nibbles(0x2390d7a4fd491ee9n);
+        const OUTPUT_STATE = split_into_nibbles(0xe69c94c22f45df8bn);
+
+        [
+            // 1. SETUP
+            // Push a zero key
+            loop(SIZE_KEY, i => 0),
+            // Push the known input state
+            INPUT_STATE.reverse(),
+
+            
+            // Push tables and load data
+            push_tables(),
+            op_load_key(),
+            op_load_msg(),
+            
+            // 2. EXECUTION
+            // Run the isolated middle layer
+            middle(),
+
+         
+            // Compare the result with the expected output
+            loop(SIZE_STATE, i => [
+                op_copy_state_to_top(i),
+                OUTPUT_STATE[i],
+                OP_EQUALVERIFY
+            ]),
+        ]
+    `)
+
+
+
+
+
+
+    test(`
+        ${source_code};
+
+        // Input state for middle() is the known state after 5 rounds
+        // of PRINCE with zero-key and zero-plaintext.
+        
+        const INPUT_STATE = split_into_nibbles(0x0000000000000000n);
+        const OUTPUT_STATE = split_into_nibbles(0x0125fc7359441690n);
+
+        [
+            // 1. SETUP
+            // Push a zero key
+            loop(SIZE_KEY, i => 0),
+            // Push the known input state
+            INPUT_STATE.reverse(),
+
+            
+            // 2. EXECUTION
+            // Run the isolated middle layer
+            princev2_encrypt,
+
+         
+            // Compare the result with the expected output
+            loop(SIZE_STATE, i => [
+                op_copy_state_to_top(i),
+                OUTPUT_STATE[i],
+                OP_EQUALVERIFY
+            ]),
+        ]
+    `)
+
+
+
+
+
+    test(`
+        ${source_code};
+
+        // Input state for middle() is the known state after 5 rounds
+        // of PRINCE with zero-key and zero-plaintext.
+        
+        const KEY1 = split_into_nibbles(0x0123456789abcdefn);
+        const KEY0 = split_into_nibbles(0xfedcba9876543210n);
+        const PLAINTEXT = split_into_nibbles(0x0123456789abcdefn);
+        const CYPHERTEXT = split_into_nibbles(0x603cd95fa72a8704n);
+
+        [
+            // 1. SETUP
+            // Push a zero key
+            KEY0.reverse(),
+            KEY1.reverse(),
+            // Push the known input state
+            PLAINTEXT.reverse(),
+
+            
+            // 2. EXECUTION
+            // Run the isolated middle layer
+            princev2_encrypt,
+
+         
+            // Compare the result with the expected output
+            loop(SIZE_STATE, i => [
+                op_copy_state_to_top(i),
+                CYPHERTEXT[i],
+                OP_EQUALVERIFY
+            ]),
+        ]
+    `)
+
+</script>
