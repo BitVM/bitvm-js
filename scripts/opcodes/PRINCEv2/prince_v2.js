@@ -125,7 +125,7 @@ const ADDR_SHIFT_TABLE = ADDR_SBOX_INV_TABLE + SIZE_SBOX_INV_TABLE
 // XOR table
 const push_xor_table = loop(16, i => loop(16, j => (15 - i) ^ (15 - j)))
 
-// "Shift by 4 bits" table
+// "Shift by 4 bits and add XOR address" table
 const push_shift_table = loop(SIZE_SHIFT_TABLE, i => i * 16 + ADDR_XOR_TABLE - 1).reverse()
 
 // "AND with constant M[m]" table
@@ -134,7 +134,7 @@ const push_and_table_m1 = loop(16, i => M[1] & i).reverse()
 const push_and_table_m2 = loop(16, i => M[2] & i).reverse()
 const push_and_table_m3 = loop(16, i => M[3] & i).reverse()
 
-// "AND with constant M[m] then shift by 4 bits" table
+// "AND with constant M[m] then shift by 4 bits and add XOR address" table
 const push_and_shift_table_m0 = loop(16, i => (M[0] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
 const push_and_shift_table_m1 = loop(16, i => (M[1] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
 const push_and_shift_table_m2 = loop(16, i => (M[2] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
@@ -467,10 +467,10 @@ const prince_shiftRow = inv => {
     }
 }
 
+
 /*───────────────────────────────────────────────────────────────
 * 5 ·  Building blocks
 */
-
 const add_key_rc = r => iter_states(i => [
     stats('add_key_rc'),
     // state nibble
@@ -490,7 +490,7 @@ const prince_roundForward = r => {
         prince_s_layer(),
         // MixColumns
         prince_m_layer(),
-        // ShiftRows pointer bookkeeping (no opcodes emitted)
+        // ShiftRows pointer bookkeeping
         prince_shiftRow(false),
         // AddRoundKey+RC
         add_key_rc(r)
@@ -604,13 +604,13 @@ const princev2_encrypt = [
 ];
 
 
-// 
-// Test cases (uncomment last line to run)
-// 
 
+
+// 
+// Test cases
+// 
 
 const test_case_1 = _ => {
-    // Test case 1
     const push_dummy_key = loop(SIZE_KEY, i  => 0)
     const push_dummy_msg = loop(SIZE_STATE, i => 0);
 
@@ -623,7 +623,6 @@ const test_case_1 = _ => {
 }
 
 const test_case_2 = _ => {
-
     const KEY1 = split_into_nibbles(0x0123456789abcdefn);
     const KEY0 = split_into_nibbles(0xfedcba9876543210n);
     const PLAINTEXT = split_into_nibbles(0x0123456789abcdefn);
@@ -637,8 +636,9 @@ const test_case_2 = _ => {
     ];
 }
 
+
 // Run test
-// DON'T REMOVE THIS LINE!
+/* >>> DON'T REMOVE THIS COMMENT! <<< */
 test_case_1()
 
 
@@ -646,3 +646,4 @@ test_case_1()
 // Possible optimizations: 
 // Optimize table pushes using copy opcodes instead of push opcodes
 // Combine operations to reduce the number of move_state_to_top 
+// Add other tables combining multiple operations into one table
