@@ -79,6 +79,7 @@ const M = [0x7, 0xb, 0xd, 0xe] // m0 m1 m2 m3
  *  Memory layout:
  *    <state                (16 bytes)> (s0, s1, ..., s15)
  *    <key                  (32 bytes)> (k0_0, ..., k0_15, k1_0, ..., k1_15)
+ * 
  *    <and_m0_shift_table   (16 bytes)>
  *    <and_m1_shift_table   (16 bytes)>
  *    <and_m2_shift_table   (16 bytes)> 
@@ -124,7 +125,48 @@ const ADDR_SHIFT_TABLE = ADDR_SBOX_INV_TABLE + SIZE_SBOX_INV_TABLE
 // XOR table
 const push_xor_table = loop(16, i => loop(16, j => (15 - i) ^ (15 - j)))
 
+// Shift by 4 bits table
 const push_shift_table = loop(SIZE_SHIFT_TABLE, i => (15 - i) * 16 + ADDR_XOR_TABLE - 1)
+
+// AND with constant M[m] table
+const push_and_table_m0 = loop(16, i => M[0] & i).reverse()
+const push_and_table_m1 = loop(16, i => M[1] & i).reverse()
+const push_and_table_m2 = loop(16, i => M[2] & i).reverse()
+const push_and_table_m3 = loop(16, i => M[3] & i).reverse()
+
+// AND with constant M[m] then shift by 4 bits
+const push_and_shift_table_m0 = loop(16, i => (M[0] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
+const push_and_shift_table_m1 = loop(16, i => (M[1] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
+const push_and_shift_table_m2 = loop(16, i => (M[2] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
+const push_and_shift_table_m3 = loop(16, i => (M[3] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
+
+// S-box table
+const push_sbox_table = PRINCE_SBOX.reverse()
+
+// Inverse S-box table
+const push_sbox_inv_table = PRINCE_SBOX_INVERSE.reverse()
+
+// Push all tables
+const push_tables = _ => [
+    push_shift_table,
+    push_sbox_inv_table,
+
+    push_and_table_m3,
+    push_and_table_m2,
+    push_and_table_m1,
+    push_and_table_m0,
+    push_xor_table,
+    push_sbox_table,
+    push_and_shift_table_m3,
+    push_and_shift_table_m2,
+    push_and_shift_table_m1,
+    push_and_shift_table_m0,
+]
+
+// Drop all tables
+const drop_tables = loop(SIZE_MEMORY - SIZE_STATE, _ => OP_DROP)
+
+
 
 const op_shift4 = (scratch = 0) => [
     stats('op_shift4'),
@@ -166,31 +208,6 @@ const op_xor_constant = (constant, scratch = 0) => {
 }
 
 
-const drop_tables = loop(SIZE_MEMORY - SIZE_STATE, _ => OP_DROP)
-
-
-// AND table
-const push_and_table_m0 = loop(16, i => M[0] & i).reverse()
-const push_and_table_m1 = loop(16, i => M[1] & i).reverse()
-const push_and_table_m2 = loop(16, i => M[2] & i).reverse()
-const push_and_table_m3 = loop(16, i => M[3] & i).reverse()
-
-const push_and_shift_table_m0 = loop(16, i => (M[0] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
-const push_and_shift_table_m1 = loop(16, i => (M[1] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
-const push_and_shift_table_m2 = loop(16, i => (M[2] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
-const push_and_shift_table_m3 = loop(16, i => (M[3] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
-
-
-const push_and_tables = [
-    push_and_shift_table_m3,
-    push_and_shift_table_m2,
-    push_and_shift_table_m1,
-    push_and_shift_table_m0,
-    push_and_table_m3,
-    push_and_table_m2,
-    push_and_table_m1,
-    push_and_table_m0,
-]
 
 
 const op_and_m0 = (scratch = 0) => [
@@ -270,18 +287,8 @@ const op_and_m_shift = (m, scratch = 0) => {
 }
 
 
-const push_sbox_table = PRINCE_SBOX.reverse()
 
-const push_sbox_inv_table = PRINCE_SBOX_INVERSE.reverse()
-
-
-/*───────────────────────────────────────────────────────────────
- * 2 · PRINCE S‑box tables  (forward + inverse)
- */
-
-
-
-/* S‑box look‑up: scratch = scratch items above index nibble (usually 0/16) */
+/* S‑box look‑up: */
 const op_sbox = (scratch = 0) => [
     stats('op_sbox'),
     scratch + ADDR_SBOX_TABLE - 1,
@@ -289,7 +296,7 @@ const op_sbox = (scratch = 0) => [
     OP_PICK,
 ]
 
-/* Inverse S‑box: just add 16 more to skip forward box */
+/* Inverse S‑box */
 const op_sbox_inv = (scratch = 0) => [
     stats('op_sbox_inv'),
     scratch + ADDR_SBOX_INV_TABLE - 1,
@@ -353,23 +360,7 @@ const op_copy_key_to_top = (index, scratch = 0) => [
 
 
 
-const push_tables = _ => [
-    push_shift_table,
-    push_sbox_inv_table,
 
-    push_and_table_m3,
-    push_and_table_m2,
-    push_and_table_m1,
-    push_and_table_m0,
-    push_xor_table,
-    push_sbox_table,
-    push_and_shift_table_m3,
-    push_and_shift_table_m2,
-    push_and_shift_table_m1,
-    push_and_shift_table_m0,
-
-    init_pointers(),
-]
 
 
 /*───────────────────────────────────────────────────────────────
@@ -394,7 +385,7 @@ const prince_MHatMultiply = (base, useMHat0, scratch = 0) => {
         op_copy_state_to_top(15 - A[1], scratch + 2),
         op_copy_state_to_top(15 - A[0], scratch + 3),
 
-        // Make 4 copies of the state nibbles
+        // Make 3 more copies of the state nibbles
         OP_2OVER, OP_2OVER, 
         OP_2OVER, OP_2OVER,
         OP_2OVER, OP_2OVER,
@@ -539,6 +530,7 @@ const middle = _ => [
 ]
 
 
+
 const op_load_key = () => loop(SIZE_KEY, i => [
     OP_FROMALTSTACK,
     // shift the key by 4 bits to prepare for XOR
@@ -556,17 +548,23 @@ const op_final_whitening = i => [
     op_xor_constant(BETA[i]),    // XORs the result with BETA
 ]
 
+const init_memory = [
+     // inputs to altstack 
+     loop(SIZE_KEY + SIZE_STATE, i => OP_TOALTSTACK),
+
+     // push tables
+     push_tables(),
+     
+     // roll key and msg to top of the stack
+     op_load_key(),
+     op_load_msg(),    
+     
+     init_pointers(),
+]
+
 const princev2_encrypt = [
 
-    // inputs to altstack 
-    loop(SIZE_KEY + SIZE_STATE, i => OP_TOALTSTACK),
-
-    // push tables
-    push_tables(),
-    
-    // roll key and msg to top of the stack
-    op_load_key(),
-    op_load_msg(),
+    init_memory,
     
     /* Initial whitening with k0 */
     loop(SIZE_STATE, i => [
@@ -599,30 +597,42 @@ const princev2_encrypt = [
 ];
 
 
+// 
+// Test cases (uncomment last line to run)
+// 
 
 
+const test_case_1 = _ => {
+    // Test case 1
+    const push_dummy_key = loop(SIZE_KEY, i  => 0)
+    const push_dummy_msg = loop(SIZE_STATE, i => 0);
 
-// Test case 1
-// const push_dummy_key = loop(SIZE_KEY, i  => 0)
-// const push_dummy_msg = loop(SIZE_STATE, i => 0);
+    return [
+        push_dummy_key,
+        push_dummy_msg,
+        princev2_encrypt,
+        console.table(window.STATS)
+    ];
+}
 
-// Test case 2
-const KEY1 = split_into_nibbles(0x0123456789abcdefn);
-const KEY0 = split_into_nibbles(0xfedcba9876543210n);
-const PLAINTEXT = split_into_nibbles(0x0123456789abcdefn);
-const CYPHERTEXT = split_into_nibbles(0x603cd95fa72a8704n);
+const test_case_2 = _ => {
 
-const push_dummy_key = [KEY0.reverse(), KEY1.reverse()]
-const push_dummy_msg = PLAINTEXT.reverse();
+    const KEY1 = split_into_nibbles(0x0123456789abcdefn);
+    const KEY0 = split_into_nibbles(0xfedcba9876543210n);
+    const PLAINTEXT = split_into_nibbles(0x0123456789abcdefn);
+    const CYPHERTEXT = split_into_nibbles(0x603cd95fa72a8704n);
 
-[
-    push_dummy_key,
-    push_dummy_msg,
-    princev2_encrypt,
-    console.table(window.STATS)
-];
+    return [
+        [KEY0.reverse(), KEY1.reverse()],
+        PLAINTEXT.reverse(),
+        princev2_encrypt,
+        console.table(window.STATS)
+    ];
+}
 
-
+// Run test
+// DON'T REMOVE THIS LINE!
+test_case_1()
 
 
 
