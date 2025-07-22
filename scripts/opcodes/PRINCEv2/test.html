@@ -1,10 +1,9 @@
-<!-- <script src="prince_v2.js"></script> -->
 <script type="module">
     import { preprocessJS } from 'https://bitvm.org/bitvm-js/scripts/compile.js'
     import init, { run_script, script_asm_to_hex } from 'https://bitvm.org/bitvm-js/libs/bitcoin_scriptexec.js'
     init()
 
-    const TEST_SEPARATOR = "// DON'T REMOVE THIS LINE!"
+    const TEST_SEPARATOR = "/* >>> DON'T REMOVE THIS COMMENT! <<< */"
 
     async function test(name, text) {
         const code = preprocessJS(text)
