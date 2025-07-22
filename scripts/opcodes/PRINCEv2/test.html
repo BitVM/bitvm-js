@@ -4,24 +4,25 @@
     import init, { run_script, script_asm_to_hex } from 'https://bitvm.org/bitvm-js/libs/bitcoin_scriptexec.js'
     init()
 
+    const TEST_SEPARATOR = "// DON'T REMOVE THIS LINE!"
 
-    async function test(text) {
+    async function test(name, text) {
         const code = preprocessJS(text)
         const compiledCode = script_asm_to_hex(code)
         const result = await run_script(compiledCode, '');
         const error = result.get('error')
         if (error) {
-            console.error(error, result.get('final_stack').reverse().slice(0, 4), result)
+            console.error(name, error, result.get('final_stack').reverse().slice(0, 4), result)
         } else {
             console.log('Test passed')
         }
     }
 
     // Load prince_v2.js
-    const source_code = await fetch('prince_v2.js').then(res => res.text())
+    const source_code = await fetch('prince_v2.js').then(res => res.text()).then(text => text.split(TEST_SEPARATOR)[0])
 
     // Test XOR: 0b0000 ^ 0b1111 = 0b1111
-    test(`
+    test('XOR 1',`
         ${source_code};
         [
             push_tables(),
@@ -41,7 +42,7 @@
     `)
 
     // Test XOR: 0b1010 ^ 0b0101 = 0b1111
-    test(`
+    test('XOR 2',`
         ${source_code};
         [
             push_tables(),
@@ -61,7 +62,7 @@
     `)
 
     // Test XOR: 0b1010 ^ 0b0101 = 0b1111
-    test(`
+    test('XOR 3',`
         ${source_code};
         [
             push_tables(),
@@ -81,7 +82,7 @@
     `)
 
     // Test XOR scratch: 0b1010 ^ 0b0101 = 0b1111
-    test(`
+    test('XOR 4',`
         ${source_code};
         [
             push_tables(),
@@ -103,7 +104,7 @@
     `)
 
     // Test Commutativity: (2 ^ 5) == (5 ^ 2)
-    test(`
+    test('XOR 5',`
         ${source_code};
         [
             push_tables(),
@@ -132,7 +133,7 @@
     
     // Test op_xor_constant: 10 ^ 5 = 15
     // (0b1010 ^ 0b0101 = 0b1111)
-    test(`
+    test('XOR 6',`
         ${source_code};
         [
             push_tables(),
@@ -152,7 +153,7 @@
 
     // Test op_xor_constant: 10 ^ 5 = 15
     // (0b1010 ^ 0b0101 = 0b1111)
-    test(`
+    test('XOR 7',`
         ${source_code};
         [
             push_tables(),
@@ -172,7 +173,7 @@
 
     // Test S-Box: SBOX_INV(SBOX(6)) == 6
     // SBOX[6] = 9; SBOX_INV[9] = 6.
-    test(`
+    test('SBOX 1',`
         ${source_code};
         [
             push_tables(),
@@ -193,7 +194,7 @@
 
     // Test AND lookup: 11 & 7 = 3
     // (0b1011 & 0b0111 = 0b0011)
-    test(`
+    test('AND 1',`
         ${source_code};
         [
             push_tables(),
@@ -213,7 +214,7 @@
 
     // Test AND lookup (m1): 12 & 11 = 8
     // (0b1100 & 0b1011 = 0b1000)
-    test(`
+    test('AND 2',`
         ${source_code};
         [
             push_tables(),
@@ -233,7 +234,7 @@
 
     // Test AND lookup (m1): 12 & 11 = 8 with scratch
     // (0b1100 & 0b1101 = 0b1100)
-    test(`
+    test('AND 3',`
         ${source_code};
         [
             push_tables(),
@@ -257,7 +258,7 @@
 
     // Test AND lookup (m1): 12 & 11 = 8
     // (0b1100 & 0b1011 = 0b1000)
-    test(`
+    test('AND 4',`
         ${source_code};
         [
             push_tables(),
@@ -278,7 +279,7 @@
 
     // Test AND lookup (m2): 10 & 13 = 8
     // (0b1010 & 0b1101 = 0b1000)
-    test(`
+    test('AND 5',`
         ${source_code};
         [
             push_tables(),
@@ -298,7 +299,7 @@
 
     // Test AND lookup (m3): 9 & 14 = 8
     // (0b1001 & 0b1110 = 0b1000)
-    test(`
+    test('AND 6',`
         ${source_code};
         [
             push_tables(),
@@ -320,7 +321,7 @@
     * 1 · S‑box forward table
     *    “SB(n) == REF_S[n]”  for n = 0…15
     */
-    test(`
+    test('SBOX 2',`
         ${source_code};
         const REF_S = [0xb,0xf,0x3,0x2,0xa,0xc,0x9,0x1,
                     0x6,0x7,0x8,0x0,0xe,0x5,0xd,0x4];
@@ -343,7 +344,7 @@
 
 
     // Test state pointer management (ENV) after reordering the stack
-    test(`
+    test('ENV 1',`
         ${source_code};
         [
             push_tables(),
@@ -379,7 +380,7 @@
     // Test M-Layer: M(M(State)) == State
     // This applies the prince_m_layer function twice and verifies
     // it returns the original state.
-    test(`
+    test('M-Layer 1',`
         ${source_code};
         [
             push_tables(),
@@ -413,7 +414,7 @@
 
     // Test Case: Isolate the bug in the middle() function.
     // This test provides a known input to just the prince_m_layer
-    test(`
+    test('M-Layer 2',`
         ${source_code};
 
         // Input state for middle() is the known state after 5 rounds
@@ -431,9 +432,7 @@
 
             
             // Push tables and load data
-            push_tables(),
-            op_load_key(),
-            op_load_msg(),
+            init_memory,
             
             // 2. EXECUTION
             // Run the isolated middle layer
@@ -451,7 +450,7 @@
 
 
     // Test prince_shiftRow: prince_shiftRow_inverse(prince_shiftRow(State)) == State
-    test(`
+    test('shiftRow 1',`
         ${source_code};
         [
             push_tables(),
@@ -477,7 +476,7 @@
 
 
     // Test add_key_rc: add_key_rc(add_key_rc(State)) == State
-    test(`
+    test('add_key_rc1',`
         ${source_code};
         [
             // Push a dummy key
@@ -486,13 +485,7 @@
             // Initial State: [0, 1, 2, ..., 15]
             loop(SIZE_STATE, i => SIZE_STATE - 1 - i),
             
-            // Push tables
-            push_tables(),
-
-            // Load key
-            op_load_key(),
-            // Load state
-            op_load_msg(),
+            init_memory,
             
             
             // Run add_key_rc for round 1 twice
@@ -511,7 +504,7 @@
 
 
 
-    test(`
+    test('princev2_fwdround1',`
         ${source_code};
 
         // Input state for middle() is the known state after 5 rounds
@@ -529,9 +522,7 @@
 
             
             // Push tables and load data
-            push_tables(),
-            op_load_key(),
-            op_load_msg(),
+            init_memory,
             
             // 2. EXECUTION
             
@@ -553,7 +544,7 @@
     // This test verifies that prince_roundInverse(prince_roundForward(State)) == State.
     // It confirms that the operations within a forward round are correctly
     // and precisely undone by the operations in an inverse round.
-    test(`
+    test('prince_roundForward 1',`
         ${source_code};
         [
             // 1. SETUP
@@ -563,12 +554,7 @@
             // Push a non-trivial initial state: [15, 14, ..., 0]
             loop(SIZE_STATE, i => 15 - i),
             
-            // Push lookup tables and initialize pointers.
-            push_tables(),
-
-            // Load key and message into the script's memory model.
-            op_load_key(),
-            op_load_msg(),
+            init_memory,
             
             
             // 2. EXECUTION
@@ -597,7 +583,7 @@
     // This test provides a known input to just the middle() function and
     // checks for a known correct output. The prince_roundForward/prince_roundInverse test
     // passed, which isolates the bug to this specific component.
-    test(`
+    test('middle 1',`
         ${source_code};
 
         // Input state for middle() is the known state after 5 rounds
@@ -615,9 +601,7 @@
 
             
             // Push tables and load data
-            push_tables(),
-            op_load_key(),
-            op_load_msg(),
+            init_memory,
             
             // 2. EXECUTION
             // Run the isolated middle layer
@@ -638,7 +622,7 @@
 
 
 
-    test(`
+    test('princev2_encrypt 2',`
         ${source_code};
 
         // Input state for middle() is the known state after 5 rounds
@@ -673,7 +657,7 @@
 
 
 
-    test(`
+    test('princev2_encrypt 3',`
         ${source_code};
 
         // Input state for middle() is the known state after 5 rounds
