@@ -29,6 +29,7 @@ const stats = (name) => {
  * 0 ·  Constants
  */
 
+const NUM_OF_ROUNDS = 12
 
 // Round constants
 const RC = [
@@ -36,12 +37,10 @@ const RC = [
     0x082efa98ec4e6c89n, 0x452821e638d01377n, 0xbe5466cf34e90c6cn,
     0x7ef84f78fd955cb1n, 0x7aacf4538d971a60n, 0xc882d32f25323c54n,
     0x9b8ded979cd838c7n, 0xd3b5a399ca0c2399n, 0x3f84d5b5b5470917n
-].map( split_into_nibbles )
+].map(split_into_nibbles)
 
 const ALPHA = split_into_nibbles(0xc0ac29b7c97c50ddn)
 const BETA = split_into_nibbles(0x3f84d5b5b5470917n)
-
-const NUM_OF_ROUNDS = 12
 
 const PRINCE_SHIFT = [
     0, 5, 10, 15,
@@ -77,6 +76,7 @@ const M = [0x7, 0xb, 0xd, 0xe] // m0 m1 m2 m3
  * 1 ·  Memory layout
  *
  *  Memory layout:
+ * 
  *    <state                (16 bytes)> (s0, s1, ..., s15)
  *    <key                  (32 bytes)> (k0_0, ..., k0_15, k1_0, ..., k1_15)
  * 
@@ -125,25 +125,23 @@ const ADDR_SHIFT_TABLE = ADDR_SBOX_INV_TABLE + SIZE_SBOX_INV_TABLE
 // XOR table
 const push_xor_table = loop(16, i => loop(16, j => (15 - i) ^ (15 - j)))
 
-// Shift by 4 bits table
-const push_shift_table = loop(SIZE_SHIFT_TABLE, i => (15 - i) * 16 + ADDR_XOR_TABLE - 1)
+// "Shift by 4 bits" table
+const push_shift_table = loop(SIZE_SHIFT_TABLE, i => i * 16 + ADDR_XOR_TABLE - 1).reverse()
 
-// AND with constant M[m] table
+// "AND with constant M[m]" table
 const push_and_table_m0 = loop(16, i => M[0] & i).reverse()
 const push_and_table_m1 = loop(16, i => M[1] & i).reverse()
 const push_and_table_m2 = loop(16, i => M[2] & i).reverse()
 const push_and_table_m3 = loop(16, i => M[3] & i).reverse()
 
-// AND with constant M[m] then shift by 4 bits
+// "AND with constant M[m] then shift by 4 bits" table
 const push_and_shift_table_m0 = loop(16, i => (M[0] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
 const push_and_shift_table_m1 = loop(16, i => (M[1] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
 const push_and_shift_table_m2 = loop(16, i => (M[2] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
 const push_and_shift_table_m3 = loop(16, i => (M[3] & i) * 16 + ADDR_XOR_TABLE - 1).reverse()
 
-// S-box table
+// S-box tables
 const push_sbox_table = PRINCE_SBOX.reverse()
-
-// Inverse S-box table
 const push_sbox_inv_table = PRINCE_SBOX_INVERSE.reverse()
 
 // Push all tables
@@ -192,7 +190,7 @@ const op_xor = (scratch = 0) => [
 const op_xor_constant = (constant, scratch = 0) => {
     stats('op_xor_constant')
     if (constant === 0) 
-        return []
+        return
     else if(constant === 0x0f)
         return [
             0x0f,
@@ -206,7 +204,6 @@ const op_xor_constant = (constant, scratch = 0) => {
             OP_PICK,
         ]
 }
-
 
 
 
@@ -305,7 +302,7 @@ const op_sbox_inv = (scratch = 0) => [
 ]
 
 /*───────────────────────────────────────────────────────────────
- * 3 · Pointer bookkeeping  (state + key halves)
+ * 2 · Pointer bookkeeping  (state + key halves)
  */
 let ENV = {}
 const STATE = i => `state_${i}`
@@ -359,12 +356,23 @@ const op_copy_key_to_top = (index, scratch = 0) => [
 ]
 
 
+const states_in_order = _ => {
+    const states = []
+    for (let i = 0; i < SIZE_STATE; i++) {
+        states.push([ENV[STATE(i)], i])
+    }
+    return states.sort((a, b) => a[0] - b[0]).map(s => s[1])
+}
 
+const iter_states = f => {
+    stats('iter_states')
+    return states_in_order().map(i => f(i))
+}
 
 
 
 /*───────────────────────────────────────────────────────────────
- * 4 ·  MixColumns  
+ * 3 ·  MixColumns  
  */
 
 
@@ -434,18 +442,18 @@ const prince_m_layer = _ => [
 ];
 
 
-const prince_s_layer = _ => loop(SIZE_STATE, i => [
+const prince_s_layer = _ => iter_states(i => [
     op_move_state_to_top(i),
     op_sbox()
 ])
 
-const prince_s_layer_inverse = _ => loop(SIZE_STATE, i => [
+const prince_s_layer_inverse = _ => iter_states(i => [
     op_move_state_to_top(i),
     op_sbox_inv()
 ])
 
 /*───────────────────────────────────────────────────────────────
- * 5 · ShiftRows  (pointer relabel only)
+ * 4 · ShiftRows  (pointer relabel only)
  */
 const prince_shiftRow = inv => {
     const src = {}
@@ -460,10 +468,10 @@ const prince_shiftRow = inv => {
 }
 
 /*───────────────────────────────────────────────────────────────
- * 6 ·  Building blocks
- */
+* 5 ·  Building blocks
+*/
 
-const add_key_rc = r => loop(16, i => [
+const add_key_rc = r => iter_states(i => [
     stats('add_key_rc'),
     // state nibble
     op_move_state_to_top(i),
@@ -511,7 +519,7 @@ const middle = _ => [
     // SB layer
     prince_s_layer(),
     // ⊕ k0
-    loop(SIZE_STATE, i => [
+    iter_states(i => [
         op_move_state_to_top(i),
         op_copy_key_to_top(i),
         op_xor_shifted() 
@@ -519,7 +527,7 @@ const middle = _ => [
     // MC
     prince_m_layer(),
     // ⊕ (k1 ⊕ RC11)
-    loop(SIZE_STATE, i => [
+    iter_states(i => [
         op_move_state_to_top(i),
         op_copy_key_to_top(i + SIZE_STATE),
         op_xor_shifted(),
@@ -567,7 +575,7 @@ const princev2_encrypt = [
     init_memory,
     
     /* Initial whitening with k0 */
-    loop(SIZE_STATE, i => [
+    iter_states(i => [
         op_move_state_to_top(i),
         op_copy_key_to_top(i),
         op_xor_shifted()
@@ -638,5 +646,4 @@ test_case_1()
 
 // Possible optimizations: 
 // Optimize table pushes using copy opcodes instead of push opcodes
-// Optimize the state copying to use the order of the states in the stack
 // Combine operations to reduce the number of move_state_to_top 
