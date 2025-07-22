@@ -516,11 +516,10 @@ const prince_roundInverse = r => {
 
 // Middle layer R′  = SB⁻¹ ◦ ⊕(k1⊕RC11) ◦ MC ◦ ⊕k0 ◦ SB
 const middle = _ => [
-    // SB layer
-    prince_s_layer(),
-    // ⊕ k0
+    // SB layer ⊕ k0
     iter_states(i => [
         op_move_state_to_top(i),
+        op_sbox(),
         op_copy_key_to_top(i),
         op_xor_shifted() 
     ]),
@@ -532,9 +531,9 @@ const middle = _ => [
         op_copy_key_to_top(i + SIZE_STATE),
         op_xor_shifted(),
         op_xor_constant(BETA[i]),
+        // SB⁻¹
+        op_sbox_inv()
     ]),
-    // SB⁻¹
-    prince_s_layer_inverse()
 ]
 
 
