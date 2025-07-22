@@ -146,7 +146,7 @@
 
         const kiloBytes = byteCount / 1024;
         if (kiloBytes < 10) return kiloBytes.toFixed(2) + ' kB';
-        if (kiloBytes < 100) return kiloBytes.toFixed(1) + ' kB';
+        if (kiloBytes < 100) return kiloBytes.toFixed(2) + ' kB';
         if (kiloBytes < 1000) return Math.round(kiloBytes) + ' kB';
 
         const megaBytes = kiloBytes / 1024;
