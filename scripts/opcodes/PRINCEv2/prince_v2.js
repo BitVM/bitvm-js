@@ -539,19 +539,14 @@ const middle = _ => [
 ]
 
 
-
 const op_load_key = () => loop(SIZE_KEY, i => [
-    OP_DEPTH,
-    OP_1SUB,
-    OP_ROLL,
+    OP_FROMALTSTACK,
     // shift the key by 4 bits to prepare for XOR
     op_shift4(i - SIZE_STATE - SIZE_KEY),
 ])
 
 const op_load_msg = () => loop(SIZE_STATE, i => [
-    OP_DEPTH,
-    OP_1SUB,
-    OP_ROLL,
+    OP_FROMALTSTACK,
 ])
 
 const op_final_whitening = i => [
@@ -562,9 +557,14 @@ const op_final_whitening = i => [
 ]
 
 const princev2_encrypt = [
+
+    // inputs to altstack 
+    loop(SIZE_KEY + SIZE_STATE, i => OP_TOALTSTACK),
+
+    // push tables
     push_tables(),
     
-    /* Roll key and msg to top of the stack */
+    // roll key and msg to top of the stack
     op_load_key(),
     op_load_msg(),
     
@@ -602,9 +602,18 @@ const princev2_encrypt = [
 
 
 
-// Test case
-const push_dummy_key = loop(SIZE_KEY, i  => 0)
-const push_dummy_msg = loop(SIZE_STATE, i => 0);
+// Test case 1
+// const push_dummy_key = loop(SIZE_KEY, i  => 0)
+// const push_dummy_msg = loop(SIZE_STATE, i => 0);
+
+// Test case 2
+const KEY1 = split_into_nibbles(0x0123456789abcdefn);
+const KEY0 = split_into_nibbles(0xfedcba9876543210n);
+const PLAINTEXT = split_into_nibbles(0x0123456789abcdefn);
+const CYPHERTEXT = split_into_nibbles(0x603cd95fa72a8704n);
+
+const push_dummy_key = [KEY0.reverse(), KEY1.reverse()]
+const push_dummy_msg = PLAINTEXT.reverse();
 
 [
     push_dummy_key,
