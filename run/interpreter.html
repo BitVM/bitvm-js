@@ -124,7 +124,7 @@
     <button id="selectDirButton" autofocus>Select Directory</button>
 </body>
 <script type="module">
-    import {preprocessJS} from '../scripts/compile.js'
+    import {preprocessJS, compileScript} from '../scripts/compile.js'
     import init, {run_script, script_asm_to_hex} from '../libs/bitcoin_scriptexec.js';
     import { sha256 } from '../libs/sha256.js';
     import {hashText, toURI } from '../libs/common.js';
@@ -221,7 +221,7 @@
 
     function preprocess(text, fileName) {
         if (fileName.endsWith('.js'))
-            return preprocessJS(text)
+            return compileScript(text)
         else
             return text
     }
