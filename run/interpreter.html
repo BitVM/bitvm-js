@@ -221,7 +221,7 @@
 
     function preprocess(text, fileName) {
         if (fileName.endsWith('.js'))
-            return compileScript(text)
+            return preprocessJS(text)
         else
             return text
     }
