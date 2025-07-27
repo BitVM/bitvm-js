@@ -76,39 +76,49 @@ export function preprocessJS(source) {
 }
 
 
+function encodeScriptNumLE(n) {
+  const neg = n < 0;
+  let v = Math.abs(n);
+  const bytes = [];
+  while (v > 0) { bytes.push(v & 0xff); v >>= 8; }
+  if (bytes.length === 0) bytes.push(0x00); // zero
+
+  const msbIndex = bytes.length - 1;
+  if (neg) {
+    if (bytes[msbIndex] & 0x80) {
+      bytes.push(0x80);           // extend and set sign bit
+    } else {
+      bytes[msbIndex] |= 0x80;    // set sign bit
+    }
+  } else {
+    if (bytes[msbIndex] & 0x80) {
+      bytes.push(0x00);           // avoid being interpreted as negative
+    }
+  }
+  return bytes.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 export function compileScript(program) {
-    return preprocessJS(program).split(' ').filter(x => {
-        // Remove empty entries
-        return x.trim().length > 0
-    }).map(x => {
-        // Keep hashes untouched
-        if (x.length > 8) 
-            return x
-        // Parse decimal integer
-        const int = parseInt(x, 10)
-        // Keep non-integers untouched
-        if (isNaN(int)) 
-            return x
-        if(int < 0){
-            console.log(program)
-            throw Error('Value should not be negative!')
-        }
-        // Construct OP_0 to OP_16
-        if (0 <= int && int <= 16)
-            return 'OP_' + int
-        // Format hexadecimal integer
-        let hex = int.toString(16)
-        // Pad hexadecimal digits to byte alignment
-        hex = hex.padStart(Math.ceil(hex.length / 2) * 2, 0)
-        // Force integer to be a natural number
-        if (parseInt(hex.slice(0, 2), 16) >= 0x80) {
-            hex = '00' + hex
-        }
-        // Swap endianness to little endian
-        return hex.match(/[a-fA-F0-9]{2}/g).reverse().join('')
-    })
+  return preprocessJS(program)
+    .split(' ')
+    .filter(x => x.trim().length > 0)
+    .map(x => {
+      if (x.length > 8) return x;          // keep long hex/hash tokens
+      const int = parseInt(x, 10);
+      if (isNaN(int)) return x;            // non-integers unchanged
+
+      // Minimal opcodes for small ints
+      if (int === 0) return 'OP_0';
+      if (int === -1) return 'OP_1NEGATE'; // or: return '81' if you want data push
+      if (1 <= int && int <= 16) return 'OP_' + int;
+
+      // Minimal sign-and-magnitude little-endian encoding
+      return encodeScriptNumLE(int);
+    });
 }
+
+
+
 
 export function replace_unlock_opcodes(script) {
     return script.map(opcode => {
