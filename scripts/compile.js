@@ -62,8 +62,10 @@ function optimize(code) {
                 code.splice(i-1, 2, OP_OVER)
             }
         }
-        if(!isNaN(code[i])){
-            code[i] = encodeScriptNumLE(code[i])
+        
+        const int = parseInt(x, 10);
+        if(!isNaN(int)){
+            code[i] = encodeScriptNumLE(int)
         }
     }
     return code
