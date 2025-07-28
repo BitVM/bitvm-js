@@ -176,8 +176,13 @@ const op_shift4 = (scratch = 0) => [
 const op_xor_shifted = (scratch = 0) => [
     stats('op_xor_shifted'),
     OP_ADD,
-    scratch,
-    OP_ADD,
+    (scratch >= 0) ? [
+        scratch,
+        OP_ADD,
+    ] : [
+        -scratch,
+        OP_SUB,
+    ],
     OP_PICK,
 ]
 
@@ -389,12 +394,12 @@ const prince_MHatMultiply = (base, useMHat0, scratch = 0, sbox = false, sbox_inv
     return [
         // Bring the 4 state nibbles on top of the stack
         loop(4, j => [
-            op_copy_state_to_top(15 - A[3-j], j),
-            sbox ? op_sbox(j+1) : OP_NOP,
+            op_move_state_to_top(15 - A[3-j]),
+            sbox ? op_sbox() : OP_NOP,
             middle ? [
-                op_sbox(j+1),
-                op_copy_key_to_top(15 - A[3-j], j+1),
-                op_xor_shifted(j+1) 
+                op_sbox(),
+                op_copy_key_to_top(15 - A[3-j]),
+                op_xor_shifted() 
             ] : OP_NOP,
         ]),
 
@@ -410,38 +415,37 @@ const prince_MHatMultiply = (base, useMHat0, scratch = 0, sbox = false, sbox_inv
 
             /* === compute  (Σ Cᵣⱼ & aⱼ)  ========================== */
             // (1) first term  (C0 & a0)
-            op_and_m(C_idx(r, 0), 4 * (4 - r) - 0),   // C0 & a0   → stack+1
+            op_and_m(C_idx(r, 0), 4 * (3 - r) - 0),   // C0 & a0   → stack+1
 
             // (2) ⊕ second term  (C1 & a1)
             OP_SWAP,        // a1
-            op_and_m_shift(C_idx(r, 1), 4 * (4 - r) - 0),   // C1 & a1
-            op_xor_shifted(4 * (4 - r) - 1),                // partial ⊕   → stack‑1
+            op_and_m_shift(C_idx(r, 1), 4 * (3 - r) - 0),   // C1 & a1
+            op_xor_shifted(4 * (3 - r) - 1),                // partial ⊕   → stack‑1
 
             // (3) ⊕ third term  (C2 & a2)
             OP_SWAP,    // a2
-            op_and_m_shift(C_idx(r, 2), 4 * (4 - r) - 1),
-            op_xor_shifted(4 * (4 - r) - 2),
+            op_and_m_shift(C_idx(r, 2), 4 * (3 - r) - 1),
+            op_xor_shifted(4 * (3 - r) - 2),
 
             // (4) ⊕ fourth term (C3 & a3)
             OP_SWAP,    // a3
-            op_and_m_shift(C_idx(r, 3), 4 * (4 - r) - 2),
-            op_xor_shifted(4 * (4 - r) - 3),                  // result bᵣ on TOS
+            op_and_m_shift(C_idx(r, 3), 4 * (3 - r) - 2),
+            op_xor_shifted(4 * (3 - r) - 3),                  // result bᵣ on TOS
 
             OP_TOALTSTACK,
         ]),
         // Replace old state with new state
         loop(4, i => [
-            op_move_state_to_top(15 - A[3-i]),          // bring old aᵣ to TOS
-            OP_DROP,                                            // discard old nibble
+            // op_move_state_to_top(15 - A[3-i]),          // bring old aᵣ to TOS
+            // OP_DROP,                                            // discard old nibble
             OP_FROMALTSTACK,
-            sbox_inv ? op_sbox_inv() : OP_NOP,
+            sbox_inv ? op_sbox_inv(-3+i) : OP_NOP,
             middle ? [
-                op_move_state_to_top(15-A[3-i]),
-                op_copy_key_to_top(15-A[3-i] + SIZE_STATE),
-                op_xor_shifted(),
-                op_xor_constant(BETA[15-A[3-i]]),
+                op_copy_key_to_top(15-A[3-i] + SIZE_STATE, -3+i),
+                op_xor_shifted(-3+i),
+                op_xor_constant(BETA[15-A[3-i]], -3+i),
                 // SB⁻¹
-                op_sbox_inv()
+                op_sbox_inv(-3+i)
             ] : OP_NOP,
         ]),
     ]
