@@ -82,6 +82,11 @@ export function preprocessJS(source) {
 
 
 function encodeScriptNumLE(n) {
+   // Minimal opcodes for small ints
+  if (n === 0) return 'OP_0';
+  if (n === -1) return 'OP_1NEGATE'; // or: return '81' if you want data push
+  if (1 <= n && n <= 16) return 'OP_' + n;
+  
   const neg = n < 0;
   let v = Math.abs(n);
   const bytes = [];
