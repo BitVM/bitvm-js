@@ -62,6 +62,9 @@ function optimize(code) {
                 code.splice(i-1, 2, OP_OVER)
             }
         }
+        if (code[i] === OP_FROMALTSTACK && code[i-1] === OP_TOALTSTACK) {
+            code.splice(i-1, 2)
+        }
         
         // const int = parseInt(code[i], 10);
         // if(!isNaN(int)){
