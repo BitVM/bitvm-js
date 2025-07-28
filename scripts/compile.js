@@ -63,7 +63,7 @@ function optimize(code) {
             }
         }
         
-        const int = parseInt(x, 10);
+        const int = parseInt(code[i], 10);
         if(!isNaN(int)){
             code[i] = encodeScriptNumLE(int)
         }
