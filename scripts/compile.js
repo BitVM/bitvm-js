@@ -62,6 +62,9 @@ function optimize(code) {
                 code.splice(i-1, 2, OP_OVER)
             }
         }
+        if(!isNaN(code[i])){
+            code[i] = encodeScriptNumLE(code[i])
+        }
     }
     return code
 }
