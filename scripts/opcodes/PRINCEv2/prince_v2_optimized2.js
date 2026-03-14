@@ -1,6 +1,6 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                                                             *
- *          PRINCE‑v2  (10.13 kB script size)                  *
+ *          PRINCE‑v2  (optimized to 10.12kB)                  *
  *                                                             *
  *                              by 1ˣ Group  – March 2026      *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -38,6 +38,62 @@ const SIZE_SBOX_INV_TABLE = 16
 const SIZE_XOR_TABLE = 256
 const SIZE_AND_TABLE = 16
 const SIZE_MEMORY = SIZE_STATE + SIZE_KEY + SIZE_SHIFT_TABLE + SIZE_SBOX_TABLE + SIZE_SBOX_INV_TABLE + SIZE_XOR_TABLE + SIZE_AND_TABLE * 8
+
+/*───────────────────────────────────────────────────────────────
+ * 0.5 · Compile-time exhaustive search helpers
+ *
+ * All 24 permutations of [0,1,2,3] are precomputed once.
+ * rollCost() returns the encoded byte size of an OP_ROLL at a
+ * given stack position, matching Bitcoin Script number encoding:
+ *   0       → 0 bytes (identity, no op emitted)
+ *   1       → 1 byte  (OP_SWAP)
+ *   2       → 1 byte  (OP_ROT)
+ *   3–16    → 2 bytes (1-byte push + OP_ROLL)
+ *   17–127  → 3 bytes (2-byte push + OP_ROLL)
+ *   128–255 → 4 bytes (3-byte push + OP_ROLL)
+ */
+const PERMS_4 = (() => {
+    const result = [];
+    const arr = [0,1,2,3];
+    const permute = (a, l = 0) => {
+        if (l === a.length - 1) { result.push([...a]); return; }
+        for (let i = l; i < a.length; i++) {
+            [a[l], a[i]] = [a[i], a[l]];
+            permute(a, l + 1);
+            [a[l], a[i]] = [a[i], a[l]];
+        }
+    };
+    permute(arr);
+    return result;
+})();
+
+function rollCost(pos) {
+    if (pos === 0) return 0;
+    if (pos <= 2) return 1;
+    if (pos <= 16) return 2;
+    if (pos <= 127) return 3;
+    return 4;
+}
+
+function cloneEnv(env) {
+    const c = {};
+    for (const k of Object.keys(env)) c[k] = env[k];
+    return c;
+}
+
+function simPtrExtract(env, stateKey) {
+    const idx = env[stateKey];
+    delete env[stateKey];
+    for (const k of Object.keys(env)) {
+        if (env[k] > idx) env[k]--;
+    }
+    return idx;
+}
+
+function simPtrInsert(env, stateKey) {
+    for (const k of Object.keys(env)) env[k]++;
+    env[stateKey] = 0;
+}
 
 /*───────────────────────────────────────────────────────────────
  * 1 ·  Memory Topology Repacking 
@@ -168,14 +224,43 @@ const op_copy_key_to_top = (index, scratch = 0) => {
 
 const prince_MHatMultiply = (base, useMHat0, pre_action = null, scratch = 0) => {
     const rot = useMHat0 ? 0 : 1;
-    const C_idx = (r, j) => (r + j + rot) & 3;
     const A = [base, base + 1, base + 2, base + 3];
+    const stateIndices = A.map(a => 15 - a);
+
+    /*── Exhaustive search: try all 24 extraction orderings ────
+     *   of the 4 nibbles and pick the one that minimises the
+     *   total encoded byte cost of the OP_ROLL operands.
+     *   This runs at compile time (script‐generation time).  */
+    let bestPerm = [3, 2, 1, 0];
+    let bestCost = Infinity;
+
+    for (const perm of PERMS_4) {
+        let se = cloneEnv(ENV);
+        let cost = 0;
+        for (const j of perm) {
+            const sk = STATE(stateIndices[j]);
+            const pos = se[sk] + scratch;
+            cost += rollCost(pos);
+            simPtrExtract(se, sk);
+            simPtrInsert(se, sk);
+        }
+        if (cost < bestCost) {
+            bestCost = cost;
+            bestPerm = [...perm];
+        }
+    }
+
+    /*── After extracting in bestPerm order the stack holds
+     *   (top → bottom): nibble[bestPerm[3]] … nibble[bestPerm[0]]
+     *   stack_map[j] = original A-index at stack position j     */
+    const stack_map = [bestPerm[3], bestPerm[2], bestPerm[1], bestPerm[0]];
+    const C_idx = (r, j) => (r + stack_map[j] + rot) & 3;
 
     return [
-        op_move_state_to_top(15 - A[3]), pre_action ? pre_action(15 - A[3]) : [],
-        op_move_state_to_top(15 - A[2]), pre_action ? pre_action(15 - A[2]) : [],
-        op_move_state_to_top(15 - A[1]), pre_action ? pre_action(15 - A[1]) : [],
-        op_move_state_to_top(15 - A[0]), pre_action ? pre_action(15 - A[0]) : [],
+        ...bestPerm.flatMap(j => [
+            op_move_state_to_top(stateIndices[j]),
+            pre_action ? pre_action(stateIndices[j]) : [],
+        ]),
 
         OP_2OVER, OP_2OVER, OP_2OVER, OP_2OVER, OP_2OVER, OP_2OVER,
 
@@ -196,14 +281,60 @@ const prince_m_layer = (pre_action = null) => {
         { base: 8, useMHat0: false }, { base: 12, useMHat0: true }
     ];
     
-    // Natively evaluates shallowest active variable arrays intrinsically bypassing OP_ROLL operations!
-    rows.sort((a, b) => {
-        const depthA = ENV[STATE(15 - a.base)] + ENV[STATE(15 - (a.base+1))] + ENV[STATE(15 - (a.base+2))] + ENV[STATE(15 - (a.base+3))];
-        const depthB = ENV[STATE(15 - b.base)] + ENV[STATE(15 - (b.base+1))] + ENV[STATE(15 - (b.base+2))] + ENV[STATE(15 - (b.base+3))];
-        return depthA - depthB;
-    });
+    /*── Exhaustive search over all 24 group orderings ─────────
+     *   For each candidate, the best within-group extraction
+     *   order is found (via its own 24-perm search) and its
+     *   ENV effects are simulated so subsequent groups are
+     *   evaluated against realistic stack depths.              */
+    let bestGroupPerm = null;
+    let bestGroupCost = Infinity;
 
-    return rows.map(r => prince_MHatMultiply(r.base, r.useMHat0, pre_action));
+    for (const groupPerm of PERMS_4) {
+        let simEnv = cloneEnv(ENV);
+        let totalCost = 0;
+
+        for (const gi of groupPerm) {
+            const row = rows[gi];
+            const sIdx = [0,1,2,3].map(j => 15 - (row.base + j));
+
+            // Find cheapest within-group extraction for this simulated state
+            let bestInnerCost = Infinity;
+            let bestInnerPerm = null;
+
+            for (const innerPerm of PERMS_4) {
+                let ie = cloneEnv(simEnv);
+                let ic = 0;
+                for (const j of innerPerm) {
+                    const sk = STATE(sIdx[j]);
+                    ic += rollCost(ie[sk]);
+                    simPtrExtract(ie, sk);
+                    simPtrInsert(ie, sk);
+                }
+                if (ic < bestInnerCost) {
+                    bestInnerCost = ic;
+                    bestInnerPerm = innerPerm;
+                }
+            }
+
+            totalCost += bestInnerCost;
+
+            // Advance simulated ENV as if this group were processed
+            for (const j of bestInnerPerm) {
+                const sk = STATE(sIdx[j]);
+                simPtrExtract(simEnv, sk);
+                simPtrInsert(simEnv, sk);
+            }
+        }
+
+        if (totalCost < bestGroupCost) {
+            bestGroupCost = totalCost;
+            bestGroupPerm = [...groupPerm];
+        }
+    }
+
+    return bestGroupPerm.map(gi =>
+        prince_MHatMultiply(rows[gi].base, rows[gi].useMHat0, pre_action)
+    );
 };
 
 const prince_shiftRow = inv => {
