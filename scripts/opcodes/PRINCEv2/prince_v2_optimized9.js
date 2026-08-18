@@ -2,7 +2,7 @@
  *                                                             *
  *          PRINCE‑v2  optimized Bitcoin Script generator      *
  *                                                             *
- *                              by 1ˣ Group  – March 2026      *
+ *                              by 1ˣ Group  – August 2026     *
  *          7.52 kB                                            *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
