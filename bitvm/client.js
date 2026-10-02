@@ -5,6 +5,7 @@ import {
 	PaulPlayer, VickyOpponent, 
 	VickyPlayer, PaulOpponent,
 } from './model.js'
+import { startListening } from './listen.js'
 import { BITVM_GRAPH } from './graph.js'
 import { PAUL, VICKY } from './constants.js'
 import { Tx } from '../libs/tapscript.js'
@@ -73,21 +74,6 @@ class BitVMClient {
 	startChallenge(){
 		this.graph.START[0].tryExecute(this.actorId)
 	}
-}
-
-async function startListening(onBlock){
-	let prevHeight = await Esplora.fetchLatestBlockHeight() - 3
-	console.log(`Started listening at height ${prevHeight}`)
-	setInterval(async _ => {
-		const latestHeight = await Esplora.fetchLatestBlockHeight()
-		while( prevHeight < latestHeight ){
-			const blockHash = await Esplora.fetchBlockAtHeight(prevHeight + 1)
-			console.log(`new chain tip: ${blockHash}`)
-			const txids = await Esplora.fetchTXIDsInBlock(blockHash)
-			await onBlock({ txids, height: latestHeight })
-			prevHeight += 1
-		}
-	}, 15000)
 }
 
 
